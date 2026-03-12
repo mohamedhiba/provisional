@@ -1,5 +1,31 @@
 import { getTodayIsoDate } from "@/lib/daily-plan";
-import { formatWeeklyRange, getCurrentWeekStart } from "@/lib/weekly-review";
+import {
+  formatWeeklyRange,
+  getCurrentWeekStart,
+  getWeekDates,
+  getWeekEnd,
+} from "@/lib/weekly-review";
+
+export type AnalyticsDriftAlert = {
+  id: string;
+  level: "high" | "medium" | "low";
+  title: string;
+  body: string;
+  metric: string;
+  href: string;
+};
+
+export type AnalyticsActivityDay = {
+  date: string;
+  score: number;
+  deepMinutes: number;
+  topTaskDone: boolean;
+  oneThingSet: boolean;
+  reviewCompleted: boolean;
+  sessionCount: number;
+  intensity: 0 | 1 | 2 | 3 | 4;
+  isFuture: boolean;
+};
 
 export type AnalyticsWeekRow = {
   weekStart: string;
@@ -15,6 +41,8 @@ export type AnalyticsWeekRow = {
 export type AnalyticsSnapshot = {
   currentStreak: number;
   weeklyHistory: AnalyticsWeekRow[];
+  activityGrid: AnalyticsActivityDay[];
+  driftAlerts: AnalyticsDriftAlert[];
 };
 
 function shiftIsoDate(dateString: string, days: number) {
@@ -32,6 +60,15 @@ export function getAnalyticsRangeStart(referenceDate = getTodayIsoDate(), days =
   return shiftIsoDate(referenceDate, -(days - 1));
 }
 
+export function getActivityGridStart(referenceDate = getTodayIsoDate(), weeks = 12) {
+  const currentWeekStart = getCurrentWeekStart(referenceDate);
+  return shiftIsoDate(currentWeekStart, -7 * (weeks - 1));
+}
+
+export function getActivityGridEnd(referenceDate = getTodayIsoDate()) {
+  return getWeekEnd(getCurrentWeekStart(referenceDate));
+}
+
 export function getHistoryWeekStarts(
   count = 4,
   currentWeekStart = getCurrentWeekStart(),
@@ -44,6 +81,8 @@ export function getHistoryWeekStarts(
 export function createEmptyAnalyticsSnapshot(): AnalyticsSnapshot {
   const weekStarts = getHistoryWeekStarts();
   const currentWeekStart = getCurrentWeekStart();
+  const today = getTodayIsoDate();
+  const activityGrid = getWeekDates(getActivityGridStart(today), getActivityGridEnd(today));
 
   return {
     currentStreak: 0,
@@ -57,6 +96,25 @@ export function createEmptyAnalyticsSnapshot(): AnalyticsSnapshot {
       winningDays: 0,
       isCurrentWeek: weekStart === currentWeekStart,
     })),
+    activityGrid: activityGrid.map((date) => ({
+      date,
+      score: 0,
+      deepMinutes: 0,
+      topTaskDone: false,
+      oneThingSet: false,
+      reviewCompleted: false,
+      sessionCount: 0,
+      intensity: 0,
+      isFuture: date > today,
+    })),
+    driftAlerts: [],
   };
 }
 
+export function formatActivityDate(dateString: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${dateString}T12:00:00`));
+}

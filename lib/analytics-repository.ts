@@ -8,9 +8,11 @@ import {
 import { normalizeFocusSession, type FocusSession } from "@/lib/focus-session";
 import { computeDailyScore } from "@/lib/daily-score";
 import {
+  getActivityGridEnd,
+  getActivityGridStart,
   createEmptyAnalyticsSnapshot,
-  getAnalyticsRangeStart,
   getHistoryWeekStarts,
+  type AnalyticsDriftAlert,
   type AnalyticsSnapshot,
 } from "@/lib/analytics";
 import { formatWeeklyRange, getCurrentWeekStart, getWeekDates, getWeekEnd } from "@/lib/weekly-review";
@@ -79,6 +81,199 @@ function computeStreak(dates: string[], scoreByDate: Map<string, number>, review
   return streak;
 }
 
+function getActivityIntensity(input: {
+  isFuture: boolean;
+  score: number;
+  oneThingSet: boolean;
+  sessionCount: number;
+  reviewCompleted: boolean;
+}): 0 | 1 | 2 | 3 | 4 {
+  if (input.isFuture) {
+    return 0;
+  }
+
+  if (!input.oneThingSet && input.sessionCount === 0 && !input.reviewCompleted) {
+    return 0;
+  }
+
+  if (input.score >= 75) {
+    return 4;
+  }
+
+  if (input.score >= 60) {
+    return 3;
+  }
+
+  if (input.score >= 40) {
+    return 2;
+  }
+
+  return 1;
+}
+
+function computeMissedTopTaskStreak(activityGrid: AnalyticsSnapshot["activityGrid"]) {
+  let streak = 0;
+  let skippedOpenToday = false;
+  const today = getTodayIsoDate();
+
+  for (const day of [...activityGrid].reverse()) {
+    if (day.isFuture) {
+      continue;
+    }
+
+    if (day.date === today && !day.reviewCompleted && !skippedOpenToday) {
+      skippedOpenToday = true;
+      continue;
+    }
+
+    if (!day.oneThingSet) {
+      break;
+    }
+
+    if (!day.topTaskDone) {
+      streak += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  return streak;
+}
+
+function computeNoDeepWorkStreak(activityGrid: AnalyticsSnapshot["activityGrid"]) {
+  let streak = 0;
+  let skippedOpenToday = false;
+  const today = getTodayIsoDate();
+
+  for (const day of [...activityGrid].reverse()) {
+    if (day.isFuture) {
+      continue;
+    }
+
+    if (day.date === today && !day.reviewCompleted && !skippedOpenToday) {
+      skippedOpenToday = true;
+      continue;
+    }
+
+    if (!day.oneThingSet && day.sessionCount === 0 && !day.reviewCompleted) {
+      break;
+    }
+
+    if (day.deepMinutes === 0) {
+      streak += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  return streak;
+}
+
+function createDriftAlerts(input: {
+  activityGrid: AnalyticsSnapshot["activityGrid"];
+  weeklyHistory: AnalyticsSnapshot["weeklyHistory"];
+}) {
+  const alerts: AnalyticsDriftAlert[] = [];
+  const today = getTodayIsoDate();
+  const pastDays = input.activityGrid.filter((day) => !day.isFuture);
+  const activePastDays = pastDays.filter(
+    (day) =>
+      day.date < today &&
+      (day.oneThingSet || day.sessionCount > 0 || day.reviewCompleted),
+  );
+  const missedTopTaskStreak = computeMissedTopTaskStreak(input.activityGrid);
+  const noDeepWorkStreak = computeNoDeepWorkStreak(input.activityGrid);
+  const skippedReviews = activePastDays.slice(-7).filter((day) => !day.reviewCompleted).length;
+  const currentWeek = input.weeklyHistory.find((week) => week.isCurrentWeek);
+  const previousWeek = [...input.weeklyHistory]
+    .reverse()
+    .find((week) => !week.isCurrentWeek);
+
+  if (missedTopTaskStreak >= 3) {
+    alerts.push({
+      id: "missed-top-task-streak",
+      level: "high",
+      title: "Top task is being avoided repeatedly.",
+      body: "The highest-value task has stayed open for multiple days. That is usually drift hiding behind other activity.",
+      metric: `${missedTopTaskStreak} missed top-task day${missedTopTaskStreak === 1 ? "" : "s"} in a row`,
+      href: "/today",
+    });
+  }
+
+  if (noDeepWorkStreak >= 3) {
+    alerts.push({
+      id: "deep-work-drop",
+      level: "high",
+      title: "Deep work has been absent for too long.",
+      body: "The system is collecting less real evidence of focused work than it should. Protect a serious block before activity theater takes over.",
+      metric: `${noDeepWorkStreak} day${noDeepWorkStreak === 1 ? "" : "s"} without deep work`,
+      href: "/sessions",
+    });
+  }
+
+  if (skippedReviews >= 2) {
+    alerts.push({
+      id: "skipped-reviews",
+      level: "medium",
+      title: "Nightly truth is slipping.",
+      body: "When days are left unclosed, drift gets harder to notice and easier to repeat.",
+      metric: `${skippedReviews} skipped nightly review${skippedReviews === 1 ? "" : "s"} in the last 7 active days`,
+      href: "/review/daily",
+    });
+  }
+
+  if (
+    currentWeek &&
+    previousWeek &&
+    previousWeek.deepWorkHours >= 4 &&
+    currentWeek.deepWorkHours <= previousWeek.deepWorkHours * 0.65
+  ) {
+    alerts.push({
+      id: "week-over-week-drop",
+      level: "medium",
+      title: "Deep work is dropping week over week.",
+      body: "This week is lagging behind the previous one. If nothing changes, the month will feel busy but move slower.",
+      metric: `${previousWeek.deepWorkHours.toFixed(1)}h -> ${currentWeek.deepWorkHours.toFixed(1)}h`,
+      href: "/analytics",
+    });
+  }
+
+  if (currentWeek && currentWeek.driftDays >= 2) {
+    alerts.push({
+      id: "drift-days",
+      level: "medium",
+      title: "Too many drift days this week.",
+      body: "The week has already shown multiple low-truth days. Tighten the next two days before the pattern hardens.",
+      metric: `${currentWeek.driftDays} drift day${currentWeek.driftDays === 1 ? "" : "s"} this week`,
+      href: "/review/weekly",
+    });
+  }
+
+  if (
+    currentWeek &&
+    currentWeek.topTaskCompletionRate < 50 &&
+    currentWeek.deepWorkHours >= 4
+  ) {
+    alerts.push({
+      id: "avoidance-disguised-as-productivity",
+      level: "low",
+      title: "Activity is outpacing alignment.",
+      body: "You are still working, but the hardest priority is not getting finished often enough. That is usually avoidance in respectable clothing.",
+      metric: `${currentWeek.topTaskCompletionRate}% top-task completion with ${currentWeek.deepWorkHours.toFixed(1)}h of deep work`,
+      href: "/today",
+    });
+  }
+
+  return alerts
+    .sort((left, right) => {
+      const priority = { high: 0, medium: 1, low: 2 };
+      return priority[left.level] - priority[right.level];
+    })
+    .slice(0, 3);
+}
+
 export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Promise<AnalyticsSnapshot> {
   const supabase = createSupabaseAdminClient();
   const profile = await findProfileByIdentity(identity);
@@ -89,8 +284,10 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
 
   const currentWeekStart = getCurrentWeekStart();
   const weekStarts = getHistoryWeekStarts(4, currentWeekStart);
-  const rangeStart = getAnalyticsRangeStart(getTodayIsoDate(), 84);
-  const rangeEnd = getTodayIsoDate();
+  const today = getTodayIsoDate();
+  const rangeStart = getActivityGridStart(today);
+  const displayEnd = getActivityGridEnd(today);
+  const queryEnd = today;
 
   const [
     { data: dailyPlans, error: dailyPlansError },
@@ -102,7 +299,7 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
       .select("plan_date, one_thing, one_thing_done, top_three, status")
       .eq("profile_id", profile.id)
       .gte("plan_date", rangeStart)
-      .lte("plan_date", rangeEnd)
+      .lte("plan_date", queryEnd)
       .order("plan_date", { ascending: true }),
     supabase
       .from("focus_sessions")
@@ -111,14 +308,14 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
       )
       .eq("profile_id", profile.id)
       .gte("session_date", rangeStart)
-      .lte("session_date", rangeEnd)
+      .lte("session_date", queryEnd)
       .order("created_at", { ascending: false }),
     supabase
       .from("daily_reviews")
       .select("review_date")
       .eq("profile_id", profile.id)
       .gte("review_date", rangeStart)
-      .lte("review_date", rangeEnd)
+      .lte("review_date", queryEnd)
       .order("review_date", { ascending: true }),
   ]);
 
@@ -176,7 +373,7 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
     return map;
   }, new Map<string, FocusSession[]>());
 
-  const analyticsDates = getWeekDates(rangeStart, rangeEnd);
+  const analyticsDates = getWeekDates(rangeStart, displayEnd);
   const scoreByDate = new Map(
     analyticsDates.map((date) => [
       date,
@@ -187,44 +384,83 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
       }),
     ]),
   );
+  const activityGrid = analyticsDates.map((date) => {
+    const sessionsForDate = sessionsByDate.get(date) ?? [];
+    const deepMinutes = sessionsForDate
+      .filter((session) => session.workDepth === "deep")
+      .reduce((sum, session) => sum + session.actualMinutes, 0);
+    const plan = plansByDate.get(date) ?? createEmptyDailyPlan(date);
+    const reviewCompleted = reviewDateSet.has(date);
+    const oneThingSet = Boolean(plan.oneThing.trim());
+    const score = date > today ? 0 : scoreByDate.get(date) ?? 0;
+    const isFuture = date > today;
+
+    return {
+      date,
+      score,
+      deepMinutes,
+      topTaskDone: plan.oneThingDone,
+      oneThingSet,
+      reviewCompleted,
+      sessionCount: sessionsForDate.length,
+      intensity: getActivityIntensity({
+        isFuture,
+        score,
+        oneThingSet,
+        sessionCount: sessionsForDate.length,
+        reviewCompleted,
+      }),
+      isFuture,
+    } satisfies AnalyticsSnapshot["activityGrid"][number];
+  });
+
+  const weeklyHistory = weekStarts.map((weekStart) => {
+    const progressEnd = limitWeekEnd(weekStart);
+    const weekDates = getWeekDates(weekStart, progressEnd);
+    const plansInWeek = weekDates
+      .map((date) => plansByDate.get(date))
+      .filter(Boolean) as ReturnType<typeof normalizeDailyPlanState>[];
+    const sessionsInWeek = weekDates.flatMap((date) => sessionsByDate.get(date) ?? []);
+    const topTaskDays = plansInWeek.filter((plan) => plan.oneThing.trim());
+    const completedTopTasks = topTaskDays.filter((plan) => plan.oneThingDone).length;
+    const topTaskCompletionRate =
+      topTaskDays.length > 0 ? Math.round((completedTopTasks / topTaskDays.length) * 100) : 0;
+    const deepMinutes = sessionsInWeek
+      .filter((session) => session.workDepth === "deep")
+      .reduce((sum, session) => sum + session.actualMinutes, 0);
+    const driftDays = weekDates.filter((date) => (scoreByDate.get(date) ?? 0) < 40).length;
+    const winningDays = weekDates.filter((date) => (scoreByDate.get(date) ?? 0) >= 75).length;
+    const reviewCompletionRate =
+      weekDates.length > 0
+        ? Math.round(
+            (weekDates.filter((date) => reviewDateSet.has(date)).length / weekDates.length) *
+              100,
+          )
+        : 0;
+
+    return {
+      weekStart,
+      label: formatWeeklyRange(weekStart),
+      topTaskCompletionRate,
+      deepWorkHours: roundToSingleDecimal(deepMinutes / 60),
+      driftDays,
+      reviewCompletionRate,
+      winningDays,
+      isCurrentWeek: weekStart === currentWeekStart,
+    };
+  });
 
   return {
-    currentStreak: computeStreak(analyticsDates, scoreByDate, reviewDateSet),
-    weeklyHistory: weekStarts.map((weekStart) => {
-      const progressEnd = limitWeekEnd(weekStart);
-      const weekDates = getWeekDates(weekStart, progressEnd);
-      const plansInWeek = weekDates
-        .map((date) => plansByDate.get(date))
-        .filter(Boolean) as ReturnType<typeof normalizeDailyPlanState>[];
-      const sessionsInWeek = weekDates.flatMap((date) => sessionsByDate.get(date) ?? []);
-      const topTaskDays = plansInWeek.filter((plan) => plan.oneThing.trim());
-      const completedTopTasks = topTaskDays.filter((plan) => plan.oneThingDone).length;
-      const topTaskCompletionRate =
-        topTaskDays.length > 0 ? Math.round((completedTopTasks / topTaskDays.length) * 100) : 0;
-      const deepMinutes = sessionsInWeek
-        .filter((session) => session.workDepth === "deep")
-        .reduce((sum, session) => sum + session.actualMinutes, 0);
-      const driftDays = weekDates.filter((date) => (scoreByDate.get(date) ?? 0) < 40).length;
-      const winningDays = weekDates.filter((date) => (scoreByDate.get(date) ?? 0) >= 75).length;
-      const reviewCompletionRate =
-        weekDates.length > 0
-          ? Math.round(
-              (weekDates.filter((date) => reviewDateSet.has(date)).length / weekDates.length) *
-                100,
-            )
-          : 0;
-
-      return {
-        weekStart,
-        label: formatWeeklyRange(weekStart),
-        topTaskCompletionRate,
-        deepWorkHours: roundToSingleDecimal(deepMinutes / 60),
-        driftDays,
-        reviewCompletionRate,
-        winningDays,
-        isCurrentWeek: weekStart === currentWeekStart,
-      };
+    currentStreak: computeStreak(
+      analyticsDates.filter((date) => date <= today),
+      scoreByDate,
+      reviewDateSet,
+    ),
+    weeklyHistory,
+    activityGrid,
+    driftAlerts: createDriftAlerts({
+      activityGrid,
+      weeklyHistory,
     }),
   };
 }
-

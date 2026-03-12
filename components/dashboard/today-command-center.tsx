@@ -7,6 +7,7 @@ import { IdentitySnapshot } from "@/components/dashboard/identity-snapshot";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PersonalizedPillars } from "@/components/dashboard/personalized-pillars";
 import { VisionBridge } from "@/components/dashboard/vision-bridge";
+import { useAnalytics } from "@/components/providers/analytics-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
@@ -33,6 +34,7 @@ export function TodayCommandCenter() {
   const { dailyPlan, setDailyPlan, hasLoaded, syncMessage } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
+  const { snapshot } = useAnalytics();
   const score = computeDailyScore({
     dailyPlan,
     sessions,
@@ -48,6 +50,7 @@ export function TodayCommandCenter() {
     hasSessions: sessions.length > 0,
     reviewCompleted: Boolean(review),
   });
+  const topDriftAlert = snapshot.driftAlerts[0] ?? null;
 
   function setOneThing(value: string) {
     setDailyPlan((current) => ({
@@ -266,13 +269,26 @@ export function TodayCommandCenter() {
                   <p className="mt-3 text-sm leading-6 text-amber-100/80">
                     {judgmentLine}
                   </p>
+                  {topDriftAlert ? (
+                    <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-amber-200/75">
+                        Pattern signal
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-stone-100">
+                        {topDriftAlert.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-stone-300">
+                        {topDriftAlert.metric}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <Link
-                href="/review/daily"
+                href={topDriftAlert?.href ?? "/review/daily"}
                 className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-amber-200/20 bg-amber-300/10 px-5 text-sm font-medium text-amber-50 transition hover:bg-amber-300/15"
               >
-                {review ? "Open review" : "Close the day"}
+                {topDriftAlert ? "Resolve signal" : review ? "Open review" : "Close the day"}
               </Link>
             </div>
           </div>

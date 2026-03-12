@@ -9,6 +9,8 @@ import {
 } from "react";
 
 import { useDailyReview } from "@/components/providers/daily-review-provider";
+import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
+import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import {
   createEmptyAnalyticsSnapshot,
@@ -38,6 +40,8 @@ async function requestAnalytics() {
 }
 
 export function AnalyticsProvider({ children }: PropsWithChildren) {
+  const { dailyPlan } = useTodayPlan();
+  const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
   const { summary } = useWeeklyReview();
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot>(
@@ -75,7 +79,16 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [review, summary.reviewCompletionRate, summary.totalScore, summary.winningDays]);
+  }, [
+    dailyPlan.oneThingDone,
+    dailyPlan.topThree.filter((item) => item.done).length,
+    sessions.length,
+    sessions[0]?.createdAt,
+    review?.reviewDate,
+    summary.reviewCompletionRate,
+    summary.totalScore,
+    summary.winningDays,
+  ]);
 
   return (
     <AnalyticsContext.Provider value={{ snapshot, hasLoaded }}>
@@ -93,4 +106,3 @@ export function useAnalytics() {
 
   return context;
 }
-

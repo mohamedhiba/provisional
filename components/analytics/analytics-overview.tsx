@@ -1,5 +1,7 @@
 "use client";
 
+import { ActivityHeatmap } from "@/components/analytics/activity-heatmap";
+import { DriftAlertList } from "@/components/analytics/drift-alert-list";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
@@ -60,6 +62,32 @@ export function AnalyticsOverview() {
           value={`${summary.driftDays}`}
           detail={`Today is at ${todayScore} and the week is currently led by ${summary.mostActivePillar.toLowerCase()}.`}
         />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
+          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+            Drift alerts
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
+            The system should call out avoidance while it is happening.
+          </h2>
+          <div className="mt-6">
+            <DriftAlertList alerts={snapshot.driftAlerts} />
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
+          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+            Activity map
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
+            Daily proof, GitHub-style.
+          </h2>
+          <div className="mt-6">
+            <ActivityHeatmap days={snapshot.activityGrid} />
+          </div>
+        </div>
       </section>
 
       <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
