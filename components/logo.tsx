@@ -1,12 +1,16 @@
 export function Logo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(243,208,118,0.3),_transparent_55%),linear-gradient(135deg,_rgba(237,89,58,0.22),_rgba(10,12,16,0.8))] text-sm font-semibold tracking-[0.3em] text-stone-100">
+      <div className="flex h-11 w-11 items-center justify-center rounded-[1.35rem] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,_rgba(244,222,166,0.55),_transparent_35%),linear-gradient(145deg,_rgba(215,168,91,0.34),_rgba(130,180,172,0.16)_45%,_rgba(8,10,13,0.9))] text-sm font-semibold tracking-[0.32em] text-stone-100 shadow-[0_16px_32px_rgba(0,0,0,0.22)]">
         P
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.35em] text-stone-500">Proof</p>
-        <p className="text-sm text-stone-300">Execution accountability system</p>
+        <p className="font-display text-2xl leading-none tracking-tight text-stone-50">
+          Proof
+        </p>
+        <p className="mt-1 text-[11px] uppercase tracking-[0.28em] text-stone-500">
+          Execution accountability
+        </p>
       </div>
     </div>
   );

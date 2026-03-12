@@ -8,7 +8,7 @@ export function IdentitySnapshot() {
 
   if (!hasLoaded) {
     return (
-      <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
+      <section className="surface-panel rounded-[2rem] p-6 sm:p-7">
         <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
           Operating system
         </p>
@@ -22,7 +22,7 @@ export function IdentitySnapshot() {
 
   if (!data.mission.trim()) {
     return (
-      <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
+      <section className="surface-panel rounded-[2rem] p-6 sm:p-7">
         <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
           Operating system
         </p>
@@ -35,7 +35,7 @@ export function IdentitySnapshot() {
         </p>
         <Link
           href="/onboarding"
-          className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-medium text-stone-100 transition hover:bg-white/10"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-5 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
         >
           Finish onboarding
         </Link>
@@ -44,7 +44,7 @@ export function IdentitySnapshot() {
   }
 
   return (
-    <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
+    <section className="surface-panel rounded-[2rem] p-6 sm:p-7">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -57,22 +57,22 @@ export function IdentitySnapshot() {
             {data.mission}
           </p>
         </div>
-        <div className="rounded-[1.5rem] border border-amber-300/20 bg-amber-300/10 px-5 py-4">
+        <div className="surface-panel-soft rounded-[1.5rem] px-5 py-4">
           <p className="text-[10px] uppercase tracking-[0.25em] text-amber-200/75">
             Tone
           </p>
-          <p className="mt-2 text-lg font-semibold text-stone-50">{data.tone}</p>
+          <p className="font-display mt-2 text-xl text-stone-50">{data.tone}</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+        <div className="surface-panel-soft rounded-[1.5rem] p-5">
           <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
             Long-term goal
           </p>
           <p className="mt-3 text-sm leading-7 text-stone-300">{data.longTermGoal}</p>
         </div>
-        <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+        <div className="surface-panel-soft rounded-[1.5rem] p-5">
           <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
             Standards
           </p>
@@ -84,7 +84,7 @@ export function IdentitySnapshot() {
         {data.pillars.map((pillar) => (
           <span
             key={pillar}
-            className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-stone-300"
+            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-300"
           >
             {pillar}
           </span>
