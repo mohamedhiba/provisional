@@ -52,6 +52,12 @@ Stage 4.4 has started:
 - working session logger
 - real session evidence on the Today dashboard
 
+Stage 4.5 has started:
+
+- weekly review persistence and real weekly metrics
+- multi-week analytics history and streak tracking
+- monthly mission layer with dashboard alignment
+
 ## Local setup
 
 1. Install dependencies with `npm install`

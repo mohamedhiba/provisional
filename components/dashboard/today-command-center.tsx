@@ -6,6 +6,7 @@ import Link from "next/link";
 import { IdentitySnapshot } from "@/components/dashboard/identity-snapshot";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PersonalizedPillars } from "@/components/dashboard/personalized-pillars";
+import { VisionBridge } from "@/components/dashboard/vision-bridge";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
@@ -125,6 +126,7 @@ export function TodayCommandCenter() {
   return (
     <div className="space-y-6">
       <IdentitySnapshot />
+      <VisionBridge />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">

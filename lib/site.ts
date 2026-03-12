@@ -5,6 +5,7 @@ import {
   BookOpen,
   ClipboardCheck,
   LayoutDashboard,
+  Target,
 } from "lucide-react";
 
 export type NavItem = {
@@ -43,6 +44,12 @@ export const siteConfig = {
       label: "Weekly Review",
       shortLabel: "Weekly",
       icon: BookOpen,
+    },
+    {
+      href: "/mission",
+      label: "Mission",
+      shortLabel: "Month",
+      icon: Target,
     },
     {
       href: "/analytics",

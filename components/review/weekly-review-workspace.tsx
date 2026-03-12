@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import { Button } from "@/components/ui/button";
+import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 import {
   createEmptyWeeklyReview,
   formatWeeklyRange,
@@ -47,10 +50,12 @@ function formatHours(value: number) {
 
 export function WeeklyReviewWorkspace() {
   const { review, summary, hasLoaded, syncMessage, submitReview } = useWeeklyReview();
+  const { mission } = useMonthlyMission();
   const [form, setForm] = useState<WeeklyReviewState>(
     createEmptyWeeklyReview(getCurrentWeekStart()),
   );
   const [formError, setFormError] = useState("");
+  const missionProgress = computeMonthlyMissionProgress(mission);
 
   useEffect(() => {
     if (review) {
@@ -137,6 +142,53 @@ export function WeeklyReviewWorkspace() {
         </div>
       </section>
 
+      <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+              Monthly alignment
+            </p>
+            <h3 className="mt-3 text-2xl font-semibold tracking-tight text-stone-50">
+              Keep the week loyal to the month.
+            </h3>
+          </div>
+          <Link
+            href="/mission"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-5 text-sm font-medium text-stone-100 transition hover:bg-white/[0.1]"
+          >
+            Open mission
+          </Link>
+        </div>
+
+        <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Month theme
+            </p>
+            <p className="mt-3 text-sm leading-7 text-stone-200">
+              {mission?.focusTheme || "Set the month theme in the mission layer."}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Monthly mission
+            </p>
+            <p className="mt-3 text-sm leading-7 text-stone-200">
+              {mission?.primaryMission || "Define the mission so the week knows what it serves."}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Mission progress
+            </p>
+            <p className="mt-3 text-sm leading-7 text-stone-200">
+              {missionProgress.completedTargets}/{missionProgress.activeTargets} targets complete
+              • {missionProgress.progressPercent}% progress
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
           <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
@@ -211,4 +263,3 @@ export function WeeklyReviewWorkspace() {
     </div>
   );
 }
-
