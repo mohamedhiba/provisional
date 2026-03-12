@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 import { Logo } from "@/components/logo";
+import { useAnalytics } from "@/components/providers/analytics-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
@@ -20,6 +21,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
   const { review, hasLoaded: reviewLoaded } = useDailyReview();
   const { summary, hasLoaded: weeklyLoaded } = useWeeklyReview();
+  const { snapshot, hasLoaded: analyticsLoaded } = useAnalytics();
   const score = computeDailyScore({
     dailyPlan,
     sessions,
@@ -28,7 +30,11 @@ export function AppShell({ children }: PropsWithChildren) {
   const headerMetrics = [
     [
       "Streak",
-      weeklyLoaded ? `${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"}` : "--",
+      analyticsLoaded
+        ? `${snapshot.currentStreak} day${snapshot.currentStreak === 1 ? "" : "s"}`
+        : weeklyLoaded
+          ? `${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"}`
+          : "--",
     ],
     [
       "Weekly",

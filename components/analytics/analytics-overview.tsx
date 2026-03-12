@@ -1,12 +1,13 @@
 "use client";
 
+import { useAnalytics } from "@/components/providers/analytics-provider";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
+import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
-import { formatMinutes } from "@/lib/focus-session";
 import { computeDailyScore } from "@/lib/daily-score";
-import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
+import { formatMinutes } from "@/lib/focus-session";
 
 function statusClassName(status: "winning" | "solid" | "drift" | "open") {
   if (status === "winning") {
@@ -29,6 +30,7 @@ export function AnalyticsOverview() {
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
   const { summary } = useWeeklyReview();
+  const { snapshot } = useAnalytics();
   const todayScore = computeDailyScore({
     dailyPlan,
     sessions,
@@ -46,7 +48,7 @@ export function AnalyticsOverview() {
         <MetricCard
           label="Night review completion"
           value={`${summary.reviewCompletionRate}%`}
-          detail={`${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"} of closed-day momentum.`}
+          detail={`${snapshot.currentStreak} day${snapshot.currentStreak === 1 ? "" : "s"} of real streak momentum.`}
         />
         <MetricCard
           label="Deep work hours"
@@ -62,12 +64,74 @@ export function AnalyticsOverview() {
 
       <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
         <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-          Current week breakdown
+          Last four weeks
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
-          Behavior should be visible before it becomes a story.
+          Trends should expose whether the system is tightening or slipping.
         </h2>
         <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-white/8">
+          <table className="min-w-full border-collapse text-left">
+            <thead className="bg-white/[0.04]">
+              <tr>
+                {["Week", "Top-task completion", "Deep work", "Drift days", "Closeout"].map((heading) => (
+                  <th
+                    key={heading}
+                    className="px-5 py-4 text-[10px] uppercase tracking-[0.25em] text-stone-500"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.weeklyHistory.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-5 py-6 text-sm leading-6 text-stone-400"
+                  >
+                    No history yet. Use the app for a few weeks and the trend line will
+                    start telling the truth.
+                  </td>
+                </tr>
+              ) : (
+                snapshot.weeklyHistory.map((week) => (
+                  <tr key={week.weekStart} className="border-t border-white/8">
+                    <td className="px-5 py-4 text-sm font-medium text-stone-100">
+                      <div className="flex items-center gap-3">
+                        <span>{week.label}</span>
+                        {week.isCurrentWeek ? (
+                          <span className="inline-flex rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-amber-100">
+                            Current
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-sm text-stone-300">
+                      {week.topTaskCompletionRate}%
+                    </td>
+                    <td className="px-5 py-4 text-sm text-stone-300">
+                      {week.deepWorkHours.toFixed(1)}h
+                    </td>
+                    <td className="px-5 py-4 text-sm text-stone-300">
+                      {week.driftDays}
+                    </td>
+                    <td className="px-5 py-4 text-sm text-stone-300">
+                      {week.reviewCompletionRate}%
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
+        <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+          Current week breakdown
+        </p>
+        <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/8">
           <table className="min-w-full border-collapse text-left">
             <thead className="bg-white/[0.04]">
               <tr>
@@ -172,4 +236,3 @@ export function AnalyticsOverview() {
     </div>
   );
 }
-

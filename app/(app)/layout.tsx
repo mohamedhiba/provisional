@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { DailyReviewProvider } from "@/components/providers/daily-review-provider";
 import { FocusSessionsProvider } from "@/components/providers/focus-sessions-provider";
 import { TodayPlanProvider } from "@/components/providers/today-plan-provider";
@@ -12,7 +13,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <FocusSessionsProvider>
         <DailyReviewProvider>
           <WeeklyReviewProvider>
-            <AppShell>{children}</AppShell>
+            <AnalyticsProvider>
+              <AppShell>{children}</AppShell>
+            </AnalyticsProvider>
           </WeeklyReviewProvider>
         </DailyReviewProvider>
       </FocusSessionsProvider>
