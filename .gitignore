@@ -7,3 +7,4 @@ coverage
 npm-debug.log*
 tsconfig.tsbuildinfo
 .DS_Store
+supabase/.temp

@@ -7,6 +7,7 @@ import {
 } from "@/lib/daily-plan";
 import { normalizeFocusSession, type FocusSession } from "@/lib/focus-session";
 import {
+  formatWeekdayLabel,
   parseWeeklyPatterns,
   createEmptyWeeklySummary,
   getCurrentWeekStart,
@@ -16,7 +17,7 @@ import {
   serializeWeeklyPatterns,
   type WeeklyReviewState,
 } from "@/lib/weekly-review";
-import { computeDailyScore } from "@/lib/daily-score";
+import { computeDailyScore, getDailyScoreLabel } from "@/lib/daily-score";
 import type { OnboardingPersistenceSource } from "@/lib/onboarding";
 import {
   createOrUpdateProfileFromSeed,
@@ -161,6 +162,35 @@ function getMostActivePillar(sessions: FocusSession[]) {
   return winner;
 }
 
+function computeCurrentStreak(input: {
+  dates: string[];
+  reviewDateSet: Set<string>;
+  scoreByDate: Map<string, number>;
+  progressEnd: string;
+}) {
+  let streak = 0;
+  let skippedOpenToday = false;
+
+  for (const date of [...input.dates].reverse()) {
+    const reviewCompleted = input.reviewDateSet.has(date);
+    const score = input.scoreByDate.get(date) ?? 0;
+
+    if (!reviewCompleted && date === input.progressEnd && !skippedOpenToday) {
+      skippedOpenToday = true;
+      continue;
+    }
+
+    if (reviewCompleted && score >= 60) {
+      streak += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  return streak;
+}
+
 export async function loadPersistedWeeklyReviewSnapshot(
   identity: PersistenceIdentity,
   weekStart = getCurrentWeekStart(),
@@ -292,6 +322,36 @@ export async function loadPersistedWeeklyReviewSnapshot(
       reviewCompleted: reviewDateSet.has(date),
     }),
   );
+  const scoreByDate = new Map(weekDates.map((date, index) => [date, dailyScores[index] ?? 0]));
+  const dailyBreakdown = weekDates.map((date) => {
+    const score = scoreByDate.get(date) ?? 0;
+    const reviewCompleted = reviewDateSet.has(date);
+    const deepMinutes = (sessionsByDate.get(date) ?? [])
+      .filter((session) => session.workDepth === "deep")
+      .reduce((sum, session) => sum + session.actualMinutes, 0);
+    const plan = plansByDate.get(date) ?? createEmptyDailyPlan(date);
+    const status =
+      !reviewCompleted && date === progressEnd
+        ? "open"
+        : score >= 75
+          ? "winning"
+          : score >= 60
+            ? "solid"
+            : score < 40
+              ? "drift"
+              : "open";
+
+    return {
+      date,
+      label: formatWeekdayLabel(date),
+      score,
+      scoreLabel: getDailyScoreLabel(score),
+      topTaskDone: plan.oneThingDone,
+      deepMinutes,
+      reviewCompleted,
+      status,
+    } satisfies import("@/lib/weekly-review").WeeklyReviewDaySummary;
+  });
 
   const totalScore = dailyScores.reduce((sum, score) => sum + score, 0);
   const winningDays = dailyScores.filter((score) => score >= 75).length;
@@ -331,6 +391,13 @@ export async function loadPersistedWeeklyReviewSnapshot(
       missedTopTasks,
       sessionCount: normalizedSessions.length,
     }),
+    currentStreak: computeCurrentStreak({
+      dates: weekDates,
+      reviewDateSet,
+      scoreByDate,
+      progressEnd,
+    }),
+    dailyBreakdown,
   };
 
   const reviewRow = (weeklyReview as WeeklyReviewRow | null) ?? null;

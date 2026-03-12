@@ -5,11 +5,40 @@ import { usePathname } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 import { Logo } from "@/components/logo";
+import { useDailyReview } from "@/components/providers/daily-review-provider";
+import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
+import { useTodayPlan } from "@/components/providers/today-plan-provider";
+import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
+import { formatPlanDate } from "@/lib/daily-plan";
+import { computeDailyScore } from "@/lib/daily-score";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const { dailyPlan, hasLoaded: todayLoaded } = useTodayPlan();
+  const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
+  const { review, hasLoaded: reviewLoaded } = useDailyReview();
+  const { summary, hasLoaded: weeklyLoaded } = useWeeklyReview();
+  const score = computeDailyScore({
+    dailyPlan,
+    sessions,
+    reviewCompleted: Boolean(review),
+  });
+  const headerMetrics = [
+    [
+      "Streak",
+      weeklyLoaded ? `${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"}` : "--",
+    ],
+    [
+      "Weekly",
+      weeklyLoaded ? `${summary.winningDays} / 5` : "--",
+    ],
+    [
+      "Score",
+      todayLoaded && sessionsLoaded && reviewLoaded ? `${score}` : "--",
+    ],
+  ] as const;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(167,139,250,0.06),_transparent_30%),radial-gradient(circle_at_bottom,_rgba(226,88,34,0.08),_transparent_40%),linear-gradient(180deg,_#08090c,_#0e1015_45%,_#090a0d)] text-stone-100">
@@ -61,18 +90,14 @@ export function AppShell({ children }: PropsWithChildren) {
           <header className="flex flex-col gap-4 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
-                Thursday, March 12
+                {formatPlanDate(dailyPlan.planDate)}
               </p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight text-stone-50">
                 Know what matters. Do the work. Face the truth.
               </h1>
             </div>
             <div className="grid grid-cols-3 gap-3 sm:w-[360px]">
-              {[
-                ["Streak", "6 days"],
-                ["Weekly", "3 / 5"],
-                ["Score", "68"],
-              ].map(([label, value]) => (
+              {headerMetrics.map(([label, value]) => (
                 <div
                   key={label}
                   className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3"

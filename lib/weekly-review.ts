@@ -14,6 +14,17 @@ export type WeeklyReviewPatterns = {
   eliminateText: string;
 };
 
+export type WeeklyReviewDaySummary = {
+  date: string;
+  label: string;
+  score: number;
+  scoreLabel: string;
+  topTaskDone: boolean;
+  deepMinutes: number;
+  reviewCompleted: boolean;
+  status: "winning" | "solid" | "drift" | "open";
+};
+
 export type WeeklyReviewSummary = {
   weekStart: string;
   weekEnd: string;
@@ -30,6 +41,8 @@ export type WeeklyReviewSummary = {
   mostActivePillar: string;
   repeatedExcuse: string;
   mainLie: string;
+  currentStreak: number;
+  dailyBreakdown: WeeklyReviewDaySummary[];
 };
 
 export const weeklyReviewStorageKeyPrefix = "proof-weekly-review";
@@ -129,7 +142,17 @@ export function createEmptyWeeklySummary(
     mostActivePillar: "No pillar evidence yet.",
     repeatedExcuse: "No excuse pattern recorded yet.",
     mainLie: "No weekly pattern detected yet.",
+    currentStreak: 0,
+    dailyBreakdown: [],
   };
+}
+
+export function formatWeekdayLabel(dateString: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${dateString}T12:00:00`));
 }
 
 export function getWeeklyReviewStorageKey(weekStart: string) {
@@ -210,4 +233,3 @@ export function parseWeeklyPatterns(value: string | null | undefined): WeeklyRev
     };
   }
 }
-
