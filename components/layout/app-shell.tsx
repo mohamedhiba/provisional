@@ -51,18 +51,18 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="relative min-h-screen text-stone-100">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-6">
-        <aside className="surface-panel mb-4 rounded-[2rem] p-4 lg:sticky lg:top-6 lg:mb-0 lg:h-[calc(100vh-3rem)] lg:w-[312px] lg:p-6 xl:w-[324px]">
+        <aside className="surface-panel mb-4 rounded-[2rem] p-4 lg:sticky lg:top-6 lg:mb-0 lg:h-[calc(100vh-3rem)] lg:w-[336px] lg:p-6 xl:w-[348px]">
           <div className="flex h-full flex-col">
             <Logo />
-            <div className="mt-8 surface-panel-soft rounded-[1.5rem] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500">
+            <div className="mt-7 surface-panel-soft rounded-[1.5rem] px-4 py-4">
+              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.26em] text-stone-400">
                 Operating mode
-              </p>
-              <p className="mt-2 text-sm leading-6 text-stone-200">
-                Discipline is a design problem. Build the environment so drift has less room.
+              </span>
+              <p className="mt-3 text-sm leading-6 text-stone-200">
+                Command room mode. Fewer decisions, sharper signals, visible proof.
               </p>
             </div>
-            <div className="mt-8 space-y-2">
+            <div className="mt-7 space-y-2.5">
               {siteConfig.navItems.map((item) => {
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -74,7 +74,7 @@ export function AppShell({ children }: PropsWithChildren) {
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex items-center justify-between rounded-[1.35rem] border px-4 py-3.5 transition duration-200",
+                      "group flex items-center justify-between rounded-[1.45rem] border px-4 py-4 transition duration-200",
                       active
                         ? "border-[#e0bf8c]/30 bg-[linear-gradient(135deg,rgba(215,168,91,0.18),rgba(130,180,172,0.1))] text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                         : "border-transparent bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-100",
@@ -99,7 +99,7 @@ export function AppShell({ children }: PropsWithChildren) {
               })}
             </div>
 
-            <div className="mt-auto space-y-4">
+            <div className="mt-6 space-y-4 lg:mt-auto">
               <AccountPanel />
               <div className="surface-panel-soft rounded-[1.75rem] p-4">
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-500">

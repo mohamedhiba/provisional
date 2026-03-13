@@ -100,13 +100,13 @@ export function AccountPanel() {
   }
 
   return (
-    <section className="surface-panel-soft rounded-[1.75rem] p-5">
-      <div className="flex items-start justify-between gap-3">
+    <section className="surface-panel-soft rounded-[1.75rem] p-4">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500">
             Sync status
           </p>
-          <h3 className="mt-3 font-sans text-[1.7rem] font-semibold tracking-[-0.03em] text-stone-50">
+          <h3 className="mt-3 max-w-[12ch] text-[1.45rem] leading-[1.02] tracking-tight text-stone-50">
             {isConnected
               ? "Connected across devices"
               : canSync
@@ -114,12 +114,12 @@ export function AccountPanel() {
                 : "Device-only mode"}
           </h3>
         </div>
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
           {isConnected ? <Cloud className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
         </span>
       </div>
 
-      <div className="mt-5 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4">
+      <div className="mt-4 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4">
         <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
           {hasLoaded
             ? isConnected
@@ -129,16 +129,21 @@ export function AccountPanel() {
                 : "Sync unavailable"
             : "Checking"}
         </p>
-        <p className="mt-2 text-sm font-medium text-stone-50">
-          {hasLoaded
-            ? isConnected
-              ? `Connected on ${user?.email ?? "your account"}`
-              : canSync
+        {hasLoaded && isConnected ? (
+          <div className="mt-2 text-sm font-medium text-stone-50">
+            <p>Connected on</p>
+            <p className="mt-1 break-all text-stone-200">{user?.email ?? "your account"}</p>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm font-medium text-stone-50">
+            {hasLoaded
+              ? canSync
                 ? "This device is still local-first."
                 : "Supabase public auth keys are missing."
-            : "Checking current session..."}
-        </p>
-        <p className="mt-3 max-w-[24ch] text-sm leading-7 text-stone-300">
+              : "Checking current session..."}
+          </p>
+        )}
+        <p className="mt-3 text-sm leading-7 text-stone-300">
           {isConnected
             ? "Use this panel later for account management. Your current device stays canonical when there is overlap."
             : canSync
@@ -151,7 +156,7 @@ export function AccountPanel() {
         className="mt-4 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4"
         onSubmit={handleTimeZoneSave}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
               Day boundary
@@ -161,12 +166,12 @@ export function AccountPanel() {
                 ? `Using this device timezone: ${browserTimeZone}`
                 : `Using account timezone: ${effectiveTimeZone}`}
             </p>
-            <p className="mt-2 max-w-[30ch] text-sm leading-6 text-stone-400">
+            <p className="mt-2 text-sm leading-6 text-stone-400">
               Right now that clock reads {formatCurrentTimeInTimeZone(effectiveTimeZone)}.
               When this timezone reaches midnight, Proof opens a new day.
             </p>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-stone-400">
+          <span className="self-start rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-stone-400">
             {syncStatus === "saving" ? "Saving" : usingDeviceTimeZone ? "Device-first" : "Account-set"}
           </span>
         </div>
@@ -191,7 +196,7 @@ export function AccountPanel() {
           </datalist>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 flex flex-col gap-3">
           <Button type="submit" variant="primary" size="md" className="w-full justify-center">
             Save timezone
           </Button>
@@ -229,7 +234,7 @@ export function AccountPanel() {
           </p>
         </div>
       ) : canSync ? (
-        <form className="mt-5 space-y-4" onSubmit={handleMagicLink}>
+        <form className="mt-4 space-y-4" onSubmit={handleMagicLink}>
           <div className="space-y-2">
             <label className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
               Sync email
