@@ -52,62 +52,69 @@ export function AppShell({ children }: PropsWithChildren) {
     <div className="relative min-h-screen text-stone-100">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-6">
         <aside className="surface-panel mb-4 rounded-[2rem] p-4 lg:sticky lg:top-6 lg:mb-0 lg:h-[calc(100vh-3rem)] lg:w-[336px] lg:p-6 xl:w-[348px]">
-          <div className="flex h-full flex-col">
-            <Logo />
-            <div className="mt-7 surface-panel-soft rounded-[1.5rem] px-4 py-4">
-              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.26em] text-stone-400">
-                Operating mode
-              </span>
-              <p className="mt-3 text-sm leading-6 text-stone-200">
-                Command room mode. Fewer decisions, sharper signals, visible proof.
-              </p>
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="shrink-0">
+              <Logo />
             </div>
-            <div className="mt-7 space-y-2.5">
-              {siteConfig.navItems.map((item) => {
-                const active =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "group flex items-center justify-between rounded-[1.45rem] border px-4 py-4 transition duration-200",
-                      active
-                        ? "border-[#e0bf8c]/30 bg-[linear-gradient(135deg,rgba(215,168,91,0.18),rgba(130,180,172,0.1))] text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                        : "border-transparent bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-100",
-                    )}
-                    >
-                    <span className="flex items-center gap-3">
-                      <Icon
+            <div className="mt-7 flex-1 min-h-0 overflow-y-auto pr-1">
+              <div className="space-y-4">
+                <div className="surface-panel-soft shrink-0 rounded-[1.5rem] px-4 py-4">
+                  <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.26em] text-stone-400">
+                    Operating mode
+                  </span>
+                  <p className="mt-3 text-sm leading-6 text-stone-200">
+                    Command room mode. Fewer decisions, sharper signals, visible proof.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {siteConfig.navItems.map((item) => {
+                    const active =
+                      pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "h-[1.05rem] w-[1.05rem]",
-                          active ? "text-amber-100" : "text-stone-500",
+                          "group flex items-center justify-between rounded-[1.45rem] border px-4 py-4 transition duration-200",
+                          active
+                            ? "border-[#e0bf8c]/30 bg-[linear-gradient(135deg,rgba(215,168,91,0.18),rgba(130,180,172,0.1))] text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                            : "border-transparent bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-100",
                         )}
-                      />
-                      <span className="text-[0.96rem] font-semibold tracking-[-0.01em]">
-                        {item.label}
-                      </span>
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-stone-500 transition group-hover:text-stone-400">
-                      {item.shortLabel}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+                      >
+                        <span className="flex items-center gap-3">
+                          <Icon
+                            className={cn(
+                              "h-[1.05rem] w-[1.05rem]",
+                              active ? "text-amber-100" : "text-stone-500",
+                            )}
+                          />
+                          <span className="text-[0.96rem] font-semibold tracking-[-0.01em]">
+                            {item.label}
+                          </span>
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.24em] text-stone-500 transition group-hover:text-stone-400">
+                          {item.shortLabel}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
 
-            <div className="mt-6 space-y-4 lg:mt-auto">
-              <AccountPanel />
-              <div className="surface-panel-soft rounded-[1.75rem] p-4">
-                <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                  Operating rule
-                </p>
-                <p className="mt-3 text-sm leading-6 text-stone-300">
-                  Daily proof beats motivational fiction. One thing first.
-                </p>
+                <AccountPanel />
+
+                <div className="surface-panel-soft rounded-[1.75rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                    Operating rule
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-stone-300">
+                    Daily proof beats motivational fiction. One thing first.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
