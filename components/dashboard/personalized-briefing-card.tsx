@@ -19,8 +19,8 @@ import {
 } from "@/lib/briefing";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 
-const briefingStorageKeyPrefix = "proof-coach-cache-v4";
-const briefingQuotaLockStorageKey = "proof-coach-lock-v1";
+const briefingStorageKeyPrefix = "proof-coach-cache-v5";
+const briefingQuotaLockStorageKey = "proof-coach-lock-v2";
 
 type ApiPayload = {
   briefing: PersonalizedBriefing;
@@ -29,6 +29,8 @@ type ApiPayload = {
 type BriefingQuotaLock = {
   lockedUntilDate: string;
   reason: string;
+  provider?: "gemini" | "groq";
+  model?: string;
 };
 
 function getProviderLabel(provider: "gemini" | "groq" | "fallback" | null | undefined) {
@@ -226,7 +228,7 @@ export function PersonalizedBriefingCard() {
 
     let active = true;
 
-    const cached = refreshNonce === 0 ? readCachedBriefing(storageKey) : null;
+    const cached = refreshNonce === 0 && !quotaLockActive ? readCachedBriefing(storageKey) : null;
 
     if (cached) {
       setBriefing(cached);
@@ -261,6 +263,18 @@ export function PersonalizedBriefingCard() {
           return;
         }
 
+        if (
+          quotaLockActive &&
+          quotaLock?.provider &&
+          payload.briefing.diagnostic?.provider &&
+          payload.briefing.diagnostic.provider !== quotaLock.provider
+        ) {
+          clearQuotaLock();
+          setQuotaLock(null);
+          setRefreshNonce((current) => current + 1);
+          return;
+        }
+
         setBriefing(payload.briefing);
         writeCachedBriefing(storageKey, payload.briefing);
         if (
@@ -270,6 +284,8 @@ export function PersonalizedBriefingCard() {
         ) {
           const nextLock = {
             lockedUntilDate: shiftIsoDate(today, 1),
+            provider: payload.briefing.diagnostic.provider,
+            model: payload.briefing.diagnostic.model,
             reason:
               payload.briefing.diagnostic.reason ||
               `${getProviderLabel(payload.briefing.diagnostic.provider)} hit a rate limit, so Proof is pausing hosted AI until tomorrow to protect quota.`,
