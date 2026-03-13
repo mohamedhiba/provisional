@@ -65,13 +65,6 @@ type PillarRow = {
   name: string;
 };
 
-function limitDateToCurrentProgress(weekStart: string) {
-  const weekEnd = getWeekEnd(weekStart);
-  const today = getTodayIsoDate();
-
-  return today < weekEnd ? today : weekEnd;
-}
-
 function roundToSingleDecimal(value: number) {
   return Math.round(value * 10) / 10;
 }
@@ -194,6 +187,7 @@ function computeCurrentStreak(input: {
 export async function loadPersistedWeeklyReviewSnapshot(
   identity: PersistenceIdentity,
   weekStart = getCurrentWeekStart(),
+  referenceDate = getTodayIsoDate(),
 ) {
   const supabase = createSupabaseAdminClient();
   const profile = await findProfileByIdentity(identity);
@@ -205,7 +199,8 @@ export async function loadPersistedWeeklyReviewSnapshot(
     };
   }
 
-  const progressEnd = limitDateToCurrentProgress(weekStart);
+  const progressEnd =
+    referenceDate < getWeekEnd(weekStart) ? referenceDate : getWeekEnd(weekStart);
   const weekDates = getWeekDates(weekStart, progressEnd);
 
   const [

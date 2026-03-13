@@ -4,6 +4,7 @@ import { CircleAlert, RefreshCw, Sparkles, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAnalytics } from "@/components/providers/analytics-provider";
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
@@ -52,6 +53,7 @@ function writeCachedBriefing(storageKey: string, briefing: PersonalizedBriefing)
 }
 
 export function PersonalizedBriefingCard() {
+  const { today, weekStart, monthStart } = useCurrentDate();
   const { onboarding, hasLoaded: onboardingLoaded } = useOnboardingProfile();
   const { dailyPlan, hasLoaded: todayLoaded } = useTodayPlan();
   const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
@@ -83,6 +85,10 @@ export function PersonalizedBriefingCard() {
       window.clearInterval(intervalId);
     };
   }, []);
+
+  useEffect(() => {
+    setWindowInfo(getBriefingWindow(new Date()));
+  }, [monthStart, today, weekStart]);
 
   const storageKey = useMemo(() => {
     const signature = hashBriefingSignature(

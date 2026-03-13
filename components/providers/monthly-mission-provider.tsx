@@ -8,9 +8,9 @@ import {
   type PropsWithChildren,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import {
-  getCurrentMonthStart,
   normalizeMonthlyMissionState,
   readLocalMonthlyMissionState,
   writeLocalMonthlyMissionState,
@@ -62,7 +62,7 @@ async function requestMonthlyMission(
 
 export function MonthlyMissionProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const monthStart = getCurrentMonthStart();
+  const { monthStart } = useCurrentDate();
   const [mission, setMission] = useState<MonthlyMissionState | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");
@@ -235,4 +235,3 @@ export function useMonthlyMission() {
 
   return context;
 }
-

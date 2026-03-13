@@ -7,14 +7,17 @@ import {
   resolvePersistenceIdentity,
   withDeviceCookie,
 } from "@/lib/server-persistence";
+import { getTodayIsoDate } from "@/lib/daily-plan";
 
-export async function GET() {
+export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
+  const { searchParams } = new URL(request.url);
+  const referenceDate = searchParams.get("date") ?? getTodayIsoDate();
 
   if (!env.hasSupabaseAdminEnv) {
     return withDeviceCookie(
       NextResponse.json({
-        snapshot: createEmptyAnalyticsSnapshot(),
+        snapshot: createEmptyAnalyticsSnapshot(referenceDate),
         remoteEnabled: false,
       }),
       identity,
@@ -25,7 +28,7 @@ export async function GET() {
     const snapshot = await loadAnalyticsSnapshot({
       authUserId: identity.authUserId,
       deviceId: identity.deviceId,
-    });
+    }, referenceDate);
 
     return withDeviceCookie(
       NextResponse.json({
@@ -37,11 +40,10 @@ export async function GET() {
   } catch {
     return withDeviceCookie(
       NextResponse.json({
-        snapshot: createEmptyAnalyticsSnapshot(),
+        snapshot: createEmptyAnalyticsSnapshot(referenceDate),
         remoteEnabled: false,
       }),
       identity,
     );
   }
 }
-

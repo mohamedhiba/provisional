@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const inputClassName =
   "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-stone-100 outline-none transition focus:border-amber-300/40";
 
 export function FocusSessionWorkspace() {
+  const { today } = useCurrentDate();
   const { onboarding } = useOnboardingProfile();
   const { sessions, createSession, deleteSession, hasLoaded, syncMessage } =
     useFocusSessions();
@@ -52,7 +54,7 @@ export function FocusSessionWorkspace() {
     }
 
     setFormError("");
-    await createSession(parseFocusSessionDraft(draft, new Date().toISOString().slice(0, 10)));
+    await createSession(parseFocusSessionDraft(draft, today));
     setDraft((current) => ({
       ...defaultFocusSessionDraft,
       pillar: current.pillar,

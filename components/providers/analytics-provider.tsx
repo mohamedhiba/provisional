@@ -8,6 +8,7 @@ import {
   type PropsWithChildren,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
@@ -24,28 +25,14 @@ type AnalyticsContextValue = {
 
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
 
-async function requestAnalytics() {
-  const response = await fetch("/api/analytics", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Analytics request failed.");
-  }
-
-  return (await response.json()) as {
-    snapshot: AnalyticsSnapshot;
-    remoteEnabled: boolean;
-  };
-}
-
 export function AnalyticsProvider({ children }: PropsWithChildren) {
+  const { today } = useCurrentDate();
   const { dailyPlan } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
   const { summary } = useWeeklyReview();
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot>(
-    createEmptyAnalyticsSnapshot(),
+    createEmptyAnalyticsSnapshot(today),
   );
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -54,7 +41,19 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
 
     async function loadSnapshot() {
       try {
-        const payload = await requestAnalytics();
+        const params = new URLSearchParams({ date: today });
+        const response = await fetch(`/api/analytics?${params.toString()}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Analytics request failed.");
+        }
+
+        const payload = (await response.json()) as {
+          snapshot: AnalyticsSnapshot;
+          remoteEnabled: boolean;
+        };
 
         if (!active) {
           return;
@@ -66,7 +65,7 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
           return;
         }
 
-        setSnapshot(createEmptyAnalyticsSnapshot());
+        setSnapshot(createEmptyAnalyticsSnapshot(today));
       } finally {
         if (active) {
           setHasLoaded(true);
@@ -84,6 +83,7 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
     dailyPlan.topThree.filter((item) => item.done).length,
     sessions.length,
     sessions[0]?.createdAt,
+    today,
     review?.reviewDate,
     summary.reviewCompletionRate,
     summary.totalScore,

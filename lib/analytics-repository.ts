@@ -49,16 +49,19 @@ function roundToSingleDecimal(value: number) {
   return Math.round(value * 10) / 10;
 }
 
-function limitWeekEnd(weekStart: string) {
+function limitWeekEnd(weekStart: string, today: string) {
   const weekEnd = getWeekEnd(weekStart);
-  const today = getTodayIsoDate();
 
   return today < weekEnd ? today : weekEnd;
 }
 
-function computeStreak(dates: string[], scoreByDate: Map<string, number>, reviewDateSet: Set<string>) {
+function computeStreak(
+  dates: string[],
+  scoreByDate: Map<string, number>,
+  reviewDateSet: Set<string>,
+  today: string,
+) {
   let streak = 0;
-  const today = getTodayIsoDate();
   let skippedOpenToday = false;
 
   for (const date of [...dates].reverse()) {
@@ -114,7 +117,7 @@ function getActivityIntensity(input: {
 function computeMissedTopTaskStreak(activityGrid: AnalyticsSnapshot["activityGrid"]) {
   let streak = 0;
   let skippedOpenToday = false;
-  const today = getTodayIsoDate();
+  const today = activityGrid.filter((day) => !day.isFuture).at(-1)?.date ?? "";
 
   for (const day of [...activityGrid].reverse()) {
     if (day.isFuture) {
@@ -144,7 +147,7 @@ function computeMissedTopTaskStreak(activityGrid: AnalyticsSnapshot["activityGri
 function computeNoDeepWorkStreak(activityGrid: AnalyticsSnapshot["activityGrid"]) {
   let streak = 0;
   let skippedOpenToday = false;
-  const today = getTodayIsoDate();
+  const today = activityGrid.filter((day) => !day.isFuture).at(-1)?.date ?? "";
 
   for (const day of [...activityGrid].reverse()) {
     if (day.isFuture) {
@@ -174,9 +177,10 @@ function computeNoDeepWorkStreak(activityGrid: AnalyticsSnapshot["activityGrid"]
 function createDriftAlerts(input: {
   activityGrid: AnalyticsSnapshot["activityGrid"];
   weeklyHistory: AnalyticsSnapshot["weeklyHistory"];
+  today: string;
 }) {
   const alerts: AnalyticsDriftAlert[] = [];
-  const today = getTodayIsoDate();
+  const today = input.today;
   const pastDays = input.activityGrid.filter((day) => !day.isFuture);
   const activePastDays = pastDays.filter(
     (day) =>
@@ -274,17 +278,20 @@ function createDriftAlerts(input: {
     .slice(0, 3);
 }
 
-export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Promise<AnalyticsSnapshot> {
+export async function loadAnalyticsSnapshot(
+  identity: PersistenceIdentity,
+  referenceDate = getTodayIsoDate(),
+): Promise<AnalyticsSnapshot> {
   const supabase = createSupabaseAdminClient();
   const profile = await findProfileByIdentity(identity);
 
   if (!profile) {
-    return createEmptyAnalyticsSnapshot();
+    return createEmptyAnalyticsSnapshot(referenceDate);
   }
 
-  const currentWeekStart = getCurrentWeekStart();
+  const currentWeekStart = getCurrentWeekStart(referenceDate);
   const weekStarts = getHistoryWeekStarts(4, currentWeekStart);
-  const today = getTodayIsoDate();
+  const today = referenceDate;
   const rangeStart = getActivityGridStart(today);
   const displayEnd = getActivityGridEnd(today);
   const queryEnd = today;
@@ -415,7 +422,7 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
   });
 
   const weeklyHistory = weekStarts.map((weekStart) => {
-    const progressEnd = limitWeekEnd(weekStart);
+    const progressEnd = limitWeekEnd(weekStart, today);
     const weekDates = getWeekDates(weekStart, progressEnd);
     const plansInWeek = weekDates
       .map((date) => plansByDate.get(date))
@@ -455,12 +462,14 @@ export async function loadAnalyticsSnapshot(identity: PersistenceIdentity): Prom
       analyticsDates.filter((date) => date <= today),
       scoreByDate,
       reviewDateSet,
+      today,
     ),
     weeklyHistory,
     activityGrid,
     driftAlerts: createDriftAlerts({
       activityGrid,
       weeklyHistory,
+      today,
     }),
   };
 }

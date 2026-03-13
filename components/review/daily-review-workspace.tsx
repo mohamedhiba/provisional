@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { Button } from "@/components/ui/button";
 import { InfoCallout } from "@/components/ui/info-callout";
-import { getTodayIsoDate } from "@/lib/daily-plan";
 import {
   createEmptyDailyReview,
   validateDailyReview,
@@ -56,10 +56,11 @@ const reviewFields = [
 }>;
 
 export function DailyReviewWorkspace() {
+  const { today } = useCurrentDate();
   const { dailyPlan } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review, hasLoaded, syncMessage, submitReview } = useDailyReview();
-  const [form, setForm] = useState<DailyReviewState>(createEmptyDailyReview(getTodayIsoDate()));
+  const [form, setForm] = useState<DailyReviewState>(createEmptyDailyReview(today));
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
@@ -68,8 +69,8 @@ export function DailyReviewWorkspace() {
       return;
     }
 
-    setForm(createEmptyDailyReview(getTodayIsoDate()));
-  }, [review]);
+    setForm(createEmptyDailyReview(today));
+  }, [review, today]);
 
   const draftScore = computeDailyScore({
     dailyPlan,

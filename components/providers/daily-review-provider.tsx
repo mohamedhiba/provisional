@@ -8,8 +8,8 @@ import {
   type PropsWithChildren,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
-import { getTodayIsoDate } from "@/lib/daily-plan";
 import {
   createEmptyDailyReview,
   normalizeDailyReviewState,
@@ -63,7 +63,7 @@ async function requestDailyReview(
 
 export function DailyReviewProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const reviewDate = getTodayIsoDate();
+  const { today: reviewDate } = useCurrentDate();
   const [review, setReview] = useState<DailyReviewState | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");

@@ -78,10 +78,10 @@ export function getHistoryWeekStarts(
   );
 }
 
-export function createEmptyAnalyticsSnapshot(): AnalyticsSnapshot {
-  const weekStarts = getHistoryWeekStarts();
-  const currentWeekStart = getCurrentWeekStart();
-  const today = getTodayIsoDate();
+export function createEmptyAnalyticsSnapshot(referenceDate = getTodayIsoDate()): AnalyticsSnapshot {
+  const weekStarts = getHistoryWeekStarts(4, getCurrentWeekStart(referenceDate));
+  const currentWeekStart = getCurrentWeekStart(referenceDate);
+  const today = referenceDate;
   const activityGrid = getWeekDates(getActivityGridStart(today), getActivityGridEnd(today));
 
   return {

@@ -11,9 +11,9 @@ import {
   type SetStateAction,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import {
   createEmptyDailyPlan,
-  getTodayIsoDate,
   normalizeDailyPlanState,
   readLocalDailyPlanState,
   writeLocalDailyPlanState,
@@ -64,7 +64,7 @@ async function requestDailyPlan(
 }
 
 export function TodayPlanProvider({ children }: PropsWithChildren) {
-  const planDate = getTodayIsoDate();
+  const { today: planDate } = useCurrentDate();
   const [dailyPlan, setDailyPlan] = useState<DailyPlanState>(
     createEmptyDailyPlan(planDate),
   );

@@ -8,10 +8,10 @@ import {
   type PropsWithChildren,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import {
   createEmptyWeeklySummary,
-  getCurrentWeekStart,
   normalizeWeeklyReviewState,
   readLocalWeeklyReviewState,
   writeLocalWeeklyReviewState,
@@ -47,9 +47,10 @@ const WeeklyReviewContext = createContext<WeeklyReviewContextValue | null>(null)
 async function requestWeeklyReview(
   method: "GET" | "POST",
   weekStart: string,
+  referenceDate: string,
   body?: Record<string, unknown>,
 ) {
-  const query = new URLSearchParams({ weekStart }).toString();
+  const query = new URLSearchParams({ weekStart, date: referenceDate }).toString();
   const response = await fetch(`/api/weekly-review?${query}`, {
     method,
     headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
@@ -66,7 +67,7 @@ async function requestWeeklyReview(
 
 export function WeeklyReviewProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const weekStart = getCurrentWeekStart();
+  const { today, weekStart } = useCurrentDate();
   const [review, setReview] = useState<WeeklyReviewState | null>(null);
   const [summary, setSummary] = useState<WeeklyReviewSummary>(
     createEmptyWeeklySummary(weekStart),
@@ -95,7 +96,7 @@ export function WeeklyReviewProvider({ children }: PropsWithChildren) {
 
     async function loadRemote() {
       try {
-        const payload = await requestWeeklyReview("GET", weekStart);
+        const payload = await requestWeeklyReview("GET", weekStart, today);
 
         if (!active) {
           return;
@@ -121,12 +122,13 @@ export function WeeklyReviewProvider({ children }: PropsWithChildren) {
         }
 
         if (payload.remoteEnabled && localReview) {
-          const syncPayload = await requestWeeklyReview("POST", weekStart, {
+          const syncPayload = await requestWeeklyReview("POST", weekStart, today, {
             review: localReview,
             profile: {
               name: onboarding.name,
               tone: onboarding.tone,
             },
+            referenceDate: today,
           });
 
           if (!active) {
@@ -175,7 +177,7 @@ export function WeeklyReviewProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [onboarding.name, onboarding.tone, weekStart]);
+  }, [onboarding.name, onboarding.tone, today, weekStart]);
 
   async function submitReview(nextReview: WeeklyReviewState) {
     const normalized = normalizeWeeklyReviewState(nextReview, weekStart);
@@ -190,12 +192,13 @@ export function WeeklyReviewProvider({ children }: PropsWithChildren) {
     );
 
     try {
-      const payload = await requestWeeklyReview("POST", weekStart, {
+      const payload = await requestWeeklyReview("POST", weekStart, today, {
         review: normalized,
         profile: {
           name: onboarding.name,
           tone: onboarding.tone,
         },
+        referenceDate: today,
       });
 
       setSummary(payload.summary);

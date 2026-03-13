@@ -29,7 +29,8 @@ type ApiResponse = {
 export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
   const { searchParams } = new URL(request.url);
-  const weekStart = searchParams.get("weekStart") ?? getCurrentWeekStart();
+  const referenceDate = searchParams.get("date") ?? undefined;
+  const weekStart = searchParams.get("weekStart") ?? getCurrentWeekStart(referenceDate);
 
   if (!env.hasSupabaseAdminEnv) {
     return withDeviceCookie(
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
         deviceId: identity.deviceId,
       },
       weekStart,
+      referenceDate,
     );
 
     return withDeviceCookie(
@@ -80,8 +82,10 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     review?: Partial<WeeklyReviewState>;
     profile?: Partial<OnboardingState>;
+    referenceDate?: string;
   };
-  const weekStart = body.review?.weekStart ?? getCurrentWeekStart();
+  const referenceDate = body.referenceDate;
+  const weekStart = body.review?.weekStart ?? getCurrentWeekStart(referenceDate);
   const state = normalizeWeeklyReviewState(body.review, weekStart);
 
   if (!env.hasSupabaseAdminEnv) {
@@ -114,6 +118,7 @@ export async function POST(request: Request) {
         deviceId: identity.deviceId,
       },
       weekStart,
+      referenceDate,
     );
 
     return withDeviceCookie(
@@ -138,4 +143,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -8,10 +8,8 @@ import {
   type PropsWithChildren,
 } from "react";
 
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
-import {
-  getTodayIsoDate,
-} from "@/lib/daily-plan";
 import {
   normalizeFocusSession,
   normalizeFocusSessions,
@@ -73,7 +71,7 @@ async function requestFocusSessions(
 
 export function FocusSessionsProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const sessionDate = getTodayIsoDate();
+  const { today: sessionDate } = useCurrentDate();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");

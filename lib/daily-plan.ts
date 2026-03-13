@@ -24,8 +24,23 @@ export function createOutcome(title = ""): DailyOutcome {
   };
 }
 
+export function getIsoDateForLocalDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export function getTodayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
+  return getIsoDateForLocalDate(new Date());
+}
+
+export function getMillisecondsUntilNextLocalMidnight(reference = new Date()) {
+  const nextMidnight = new Date(reference);
+  nextMidnight.setHours(24, 0, 0, 250);
+
+  return Math.max(250, nextMidnight.getTime() - reference.getTime());
 }
 
 export function createEmptyDailyPlan(planDate = getTodayIsoDate()): DailyPlanState {
