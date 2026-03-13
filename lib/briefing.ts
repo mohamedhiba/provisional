@@ -24,8 +24,14 @@ export type PersonalizedBriefing = {
   momentLabel: string;
   title: string;
   summary: string;
+  coachMessage: string;
+  accountability: string;
   focus: string;
   actions: string[];
+  evidence: Array<{
+    label: string;
+    value: string;
+  }>;
   generatedAt: string;
   source: "gemini" | "fallback";
   cacheKey: string;

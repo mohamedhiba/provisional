@@ -130,9 +130,9 @@ export function TodayCommandCenter() {
 
   return (
     <div className="space-y-6">
+      <PersonalizedBriefingCard />
       <IdentitySnapshot />
       <VisionBridge />
-      <PersonalizedBriefingCard />
       <StartHerePanel />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">

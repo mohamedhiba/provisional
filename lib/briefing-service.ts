@@ -74,10 +74,33 @@ function clampActions(actions: string[]) {
     .slice(0, 3);
 }
 
+function buildEvidence(context: BriefingContext) {
+  return [
+    {
+      label: "Yesterday",
+      value: `${context.yesterday.score} score${context.yesterday.reviewCompleted ? " with closeout" : " and no closeout"}`,
+    },
+    {
+      label: "Today",
+      value: `${context.today.deepMinutes} deep minutes and ${context.today.sessionCount} logged session${context.today.sessionCount === 1 ? "" : "s"}`,
+    },
+    {
+      label: "This week",
+      value: `${context.week.winningDays} winning day${context.week.winningDays === 1 ? "" : "s"} and ${Math.round(context.week.topTaskCompletionRate)}% top-task execution`,
+    },
+    {
+      label: "This month",
+      value: `${context.month.progressPercent}% mission progress with ${context.month.daysRemaining} day${context.month.daysRemaining === 1 ? "" : "s"} left`,
+    },
+  ];
+}
+
 function buildFallbackBriefing(context: BriefingContext, cacheKey: string): PersonalizedBriefing {
   const actions: string[] = [];
   const todayFocus =
     context.today.oneThing.trim() || context.month.currentWeekFocus.trim() || "Define the next serious move.";
+  const evidence = buildEvidence(context);
+  const driftSignal = context.alerts[0]?.trim() || "";
 
   if (!context.today.oneThing.trim()) {
     actions.push("Set the one thing now before easier work starts impersonating progress.");
@@ -142,14 +165,26 @@ function buildFallbackBriefing(context: BriefingContext, cacheKey: string): Pers
   };
 
   const selected = momentCopy[context.momentId];
+  const coachMessage =
+    context.today.oneThingDone
+      ? `${context.name}, you already moved the real priority. Do not waste that by relaxing into shallow work for the rest of the day.`
+      : `${context.name}, the scoreboard says the day is still open. Until the one thing is done, you are not ahead, you are only warm.`;
+  const accountability = driftSignal
+    ? `Accountability check: ${driftSignal}. Fix that pattern with your next block, not with a better explanation.`
+    : context.yesterday.reviewCompleted
+      ? `Accountability check: yesterday you closed the loop. Match that honesty again tonight and let the next session earn its place.`
+      : "Accountability check: yesterday stayed too easy to escape. Close the day tonight so effort stops disappearing without judgment.";
 
   return {
     momentId: context.momentId,
     momentLabel: context.momentLabel,
     title: selected.title,
     summary: selected.summary,
+    coachMessage,
+    accountability,
     focus: selected.focus,
     actions: clampActions(actions),
+    evidence,
     generatedAt: new Date().toISOString(),
     source: "fallback",
     cacheKey,
@@ -157,19 +192,36 @@ function buildFallbackBriefing(context: BriefingContext, cacheKey: string): Pers
 }
 
 function normalizeGeneratedBrief(
-  input: Partial<Pick<PersonalizedBriefing, "title" | "summary" | "focus" | "actions">>,
+  input: Partial<
+    Pick<
+      PersonalizedBriefing,
+      "title" | "summary" | "coachMessage" | "accountability" | "focus" | "actions" | "evidence"
+    >
+  >,
   context: BriefingContext,
   cacheKey: string,
 ): PersonalizedBriefing {
   const fallback = buildFallbackBriefing(context, cacheKey);
   const actions = clampActions(Array.isArray(input.actions) ? input.actions : []);
+  const evidence = Array.isArray(input.evidence)
+    ? input.evidence
+        .map((item) => ({
+          label: typeof item?.label === "string" ? item.label.trim() : "",
+          value: typeof item?.value === "string" ? item.value.trim() : "",
+        }))
+        .filter((item) => item.label && item.value)
+        .slice(0, 4)
+    : [];
 
   return {
     ...fallback,
     title: input.title?.trim() || fallback.title,
     summary: input.summary?.trim() || fallback.summary,
+    coachMessage: input.coachMessage?.trim() || fallback.coachMessage,
+    accountability: input.accountability?.trim() || fallback.accountability,
     focus: input.focus?.trim() || fallback.focus,
     actions: actions.length >= 2 ? actions : fallback.actions,
+    evidence: evidence.length >= 3 ? evidence : fallback.evidence,
     generatedAt: new Date().toISOString(),
     source: "gemini",
     cacheKey,
@@ -181,13 +233,17 @@ async function generateWithGemini(
   cacheKey: string,
 ): Promise<PersonalizedBriefing> {
   const prompt = [
-    "You write short execution briefings for a serious accountability app called Proof.",
+    "You are Proof Coach, a blunt but supportive mentor inside a serious execution-accountability app.",
+    "Write like a personal coach or life mentor speaking directly to one ambitious person.",
     "The tone must be personal, sharp, honest, motivating, and slightly uncomfortable without being cruel.",
-    "Avoid cliches, hype, therapy language, emojis, and generic advice.",
+    "Avoid cliches, hype, therapy language, emojis, filler, and generic advice.",
+    "Use second person. Refer to the user by name if one is available.",
     "Mention at least one concrete metric from the context.",
-    "Keep the summary tight. Make the focus line actionable. Return 2 or 3 actions only.",
+    "The response must help the user see three things: what the evidence says, what is happening right now, and what they must do next.",
+    "Keep summary tight. Keep coachMessage direct. Make accountability feel like a standard, not a slogan. Return 2 or 3 actions only.",
     getBriefingPromptDirective(context.momentId),
-    "Return valid JSON with exactly these keys: title, summary, focus, actions.",
+    "Return valid JSON with exactly these keys: title, summary, coachMessage, accountability, focus, actions, evidence.",
+    "evidence must be an array of 3 or 4 objects with exactly these keys: label, value.",
     "Context:",
     JSON.stringify(context, null, 2),
   ].join("\n\n");
@@ -243,8 +299,14 @@ async function generateWithGemini(
   const parsed = JSON.parse(rawText) as Partial<{
     title: string;
     summary: string;
+    coachMessage: string;
+    accountability: string;
     focus: string;
     actions: string[];
+    evidence: Array<{
+      label: string;
+      value: string;
+    }>;
   }>;
 
   return normalizeGeneratedBrief(parsed, context, cacheKey);
