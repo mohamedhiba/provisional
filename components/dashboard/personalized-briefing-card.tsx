@@ -31,6 +31,21 @@ type BriefingQuotaLock = {
   reason: string;
 };
 
+function getProviderLabel(provider: "gemini" | "groq" | "fallback" | null | undefined) {
+  switch (provider) {
+    case "groq":
+      return "Groq";
+    case "gemini":
+      return "Gemini";
+    default:
+      return "AI";
+  }
+}
+
+function hasProviderHttpFailure(briefing: PersonalizedBriefing | null) {
+  return Boolean(briefing?.diagnostic && (briefing.diagnostic.code || briefing.diagnostic.status));
+}
+
 function readCachedBriefing(storageKey: string) {
   if (typeof window === "undefined") {
     return null;
@@ -188,7 +203,8 @@ export function PersonalizedBriefingCard() {
   ]);
 
   const hasLockedWindowBriefing =
-    briefing?.source === "gemini" && briefing.cacheKey === windowInfo.cacheBucket;
+    (briefing?.source === "gemini" || briefing?.source === "groq") &&
+    briefing.cacheKey === windowInfo.cacheBucket;
   const quotaLockActive = isQuotaLockActive(quotaLock, today);
 
   useEffect(() => {
@@ -248,14 +264,15 @@ export function PersonalizedBriefingCard() {
         setBriefing(payload.briefing);
         writeCachedBriefing(storageKey, payload.briefing);
         if (
-          payload.briefing.diagnostic?.provider === "gemini" &&
+          (payload.briefing.diagnostic?.provider === "gemini" ||
+            payload.briefing.diagnostic?.provider === "groq") &&
           payload.briefing.diagnostic?.code === 429
         ) {
           const nextLock = {
             lockedUntilDate: shiftIsoDate(today, 1),
             reason:
               payload.briefing.diagnostic.reason ||
-              "Gemini hit a rate limit, so Proof is pausing AI until tomorrow to protect quota.",
+              `${getProviderLabel(payload.briefing.diagnostic.provider)} hit a rate limit, so Proof is pausing hosted AI until tomorrow to protect quota.`,
           };
           writeQuotaLock(nextLock);
           setQuotaLock(nextLock);
@@ -315,11 +332,13 @@ export function PersonalizedBriefingCard() {
                     : "border-white/10 bg-white/[0.03] text-stone-400"
               }`}
             >
-              {briefing?.source === "gemini"
-                ? "Gemini live"
-                : briefing?.diagnostic
-                  ? "Gemini issue"
-                  : "Coach fallback"}
+              {briefing?.source === "groq"
+                ? "Groq live"
+                : briefing?.source === "gemini"
+                  ? "Gemini live"
+                  : briefing?.diagnostic
+                    ? `${getProviderLabel(briefing.diagnostic.provider)} issue`
+                    : "Coach fallback"}
             </span>
           </div>
 
@@ -348,7 +367,7 @@ export function PersonalizedBriefingCard() {
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`} />
           {quotaLockActive
-            ? "Gemini paused until tomorrow"
+            ? "AI paused until tomorrow"
             : hasLockedWindowBriefing
               ? "Locked for this window"
               : "Refresh coach"}
@@ -469,12 +488,14 @@ export function PersonalizedBriefingCard() {
             </p>
             <p className="mt-2 text-sm leading-7 text-stone-300">
               {quotaLockActive
-                ? `Gemini is paused until ${quotaLock?.lockedUntilDate}. Proof is reusing cached coaching and the local engine so you do not waste free-tier quota.`
-                : briefing?.source === "gemini"
-                  ? "Gemini has already generated this window's coach note. Proof will reuse it until the next briefing window opens."
-                  : briefing?.diagnostic
-                    ? `Gemini is configured, but Google returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
-                    : "Gemini is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
+                ? `Hosted AI is paused until ${quotaLock?.lockedUntilDate}. Proof is reusing cached coaching and the local engine so you do not waste quota.`
+                : briefing?.source === "groq" || briefing?.source === "gemini"
+                  ? `${getProviderLabel(briefing.source)} has already generated this window's coach note. Proof will reuse it until the next briefing window opens.`
+                  : briefing?.diagnostic && hasProviderHttpFailure(briefing)
+                    ? `${getProviderLabel(briefing.diagnostic.provider)} is configured, but returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
+                    : briefing?.diagnostic
+                      ? `Hosted AI is currently unavailable, so Proof is using the local coach engine to keep the pressure on.`
+                      : "Hosted AI is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
             </p>
             {quotaLockActive && quotaLock?.reason ? (
               <p className="mt-3 text-xs leading-6 text-stone-400">
@@ -495,7 +516,7 @@ export function PersonalizedBriefingCard() {
           Built from today&apos;s plan, yesterday&apos;s closeout, weekly evidence, and monthly progress.
         </span>
         {hasLockedWindowBriefing ? <span>Coach note is locked for this window to protect quota.</span> : null}
-        {quotaLockActive ? <span>Gemini is paused until the next day because Google rate-limited the free tier.</span> : null}
+        {quotaLockActive ? <span>Hosted AI is paused until the next day because the current provider hit a rate limit.</span> : null}
         {status === "loading" ? <span>Refreshing the coach...</span> : null}
         {status === "error" ? <span>Coach refresh failed. The last stable version will stay visible.</span> : null}
       </div>

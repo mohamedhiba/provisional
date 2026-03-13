@@ -67,7 +67,11 @@ type BriefingContext = {
   alerts: string[];
 };
 
-type GeminiErrorDetails = {
+type AiProvider = "groq" | "gemini";
+
+type ProviderErrorDetails = {
+  provider: AiProvider;
+  model: string;
   code?: number;
   status?: string;
   reason: string;
@@ -105,7 +109,7 @@ function buildEvidence(context: BriefingContext) {
 function buildFallbackBriefing(
   context: BriefingContext,
   cacheKey: string,
-  diagnostic?: GeminiErrorDetails,
+  diagnostic?: ProviderErrorDetails,
 ): PersonalizedBriefing {
   const actions: string[] = [];
   const todayFocus =
@@ -198,8 +202,8 @@ function buildFallbackBriefing(
     evidence,
     diagnostic: diagnostic
       ? {
-          provider: "gemini",
-          model: env.googleAiModel,
+          provider: diagnostic.provider,
+          model: diagnostic.model,
           code: diagnostic.code,
           status: diagnostic.status,
           reason: diagnostic.reason,
@@ -221,6 +225,8 @@ function normalizeGeneratedBrief(
   >,
   context: BriefingContext,
   cacheKey: string,
+  source: AiProvider,
+  model: string,
 ): PersonalizedBriefing {
   const fallback = buildFallbackBriefing(context, cacheKey);
   const actions = clampActions(Array.isArray(input.actions) ? input.actions : []);
@@ -244,7 +250,8 @@ function normalizeGeneratedBrief(
     actions: actions.length >= 2 ? actions : fallback.actions,
     evidence: evidence.length >= 3 ? evidence : fallback.evidence,
     generatedAt: new Date().toISOString(),
-    source: "gemini",
+    source,
+    diagnostic: undefined,
     cacheKey,
   };
 }
@@ -310,8 +317,10 @@ async function generateWithGemini(
     const message =
       payload?.error?.message?.trim() ||
       `Gemini request failed with ${response.status}.`;
-    const error = new Error(message) as Error & { details?: GeminiErrorDetails };
+    const error = new Error(message) as Error & { details?: ProviderErrorDetails };
     error.details = {
+      provider: "gemini",
+      model: env.googleAiModel,
       code,
       status,
       reason: message,
@@ -338,9 +347,11 @@ async function generateWithGemini(
 
   if (!rawText) {
     const error = new Error("Gemini returned an empty response.") as Error & {
-      details?: GeminiErrorDetails;
+      details?: ProviderErrorDetails;
     };
     error.details = {
+      provider: "gemini",
+      model: env.googleAiModel,
       reason: "Gemini returned an empty response.",
       retryable: true,
     };
@@ -375,16 +386,183 @@ async function generateWithGemini(
     }>;
   } catch {
     const error = new Error("Gemini returned invalid JSON.") as Error & {
-      details?: GeminiErrorDetails;
+      details?: ProviderErrorDetails;
     };
     error.details = {
+      provider: "gemini",
+      model: env.googleAiModel,
       reason: "Gemini returned invalid JSON.",
       retryable: true,
     };
     throw error;
   }
 
-  return normalizeGeneratedBrief(parsed, context, cacheKey);
+  return normalizeGeneratedBrief(parsed, context, cacheKey, "gemini", env.googleAiModel);
+}
+
+async function generateWithGroq(
+  context: BriefingContext,
+  cacheKey: string,
+): Promise<PersonalizedBriefing> {
+  const prompt = [
+    "You are Proof Coach, a blunt but supportive mentor inside a serious execution-accountability app.",
+    "Write like a personal coach or life mentor speaking directly to one ambitious person.",
+    "The tone must be personal, sharp, honest, motivating, and slightly uncomfortable without being cruel.",
+    "Avoid cliches, hype, therapy language, emojis, filler, and generic advice.",
+    "Use second person. Refer to the user by name if one is available.",
+    "Mention at least one concrete metric from the context.",
+    "The response must help the user see three things: what the evidence says, what is happening right now, and what they must do next.",
+    "Keep summary tight. Keep coachMessage direct. Make accountability feel like a standard, not a slogan. Return 2 or 3 actions only.",
+    getBriefingPromptDirective(context.momentId),
+    "Return valid JSON with exactly these keys: title, summary, coachMessage, accountability, focus, actions, evidence.",
+    "evidence must be an array of 3 or 4 objects with exactly these keys: label, value.",
+    "Context:",
+    JSON.stringify(context, null, 2),
+  ].join("\n\n");
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.groqApiKey}`,
+    },
+    body: JSON.stringify({
+      model: env.groqModel,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Proof Coach. Always return valid JSON only. No markdown fences. No commentary outside JSON.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      response_format: {
+        type: "json_object",
+      },
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          error?: {
+            code?: string;
+            message?: string;
+            type?: string;
+          };
+        }
+      | null;
+
+    const code = response.status;
+    const status = payload?.error?.type ?? response.statusText;
+    const message =
+      payload?.error?.message?.trim() ||
+      `Groq request failed with ${response.status}.`;
+    const error = new Error(message) as Error & { details?: ProviderErrorDetails };
+    error.details = {
+      provider: "groq",
+      model: env.groqModel,
+      code,
+      status,
+      reason: message,
+      retryable: response.status === 429 || response.status >= 500,
+    };
+    throw error;
+  }
+
+  const payload = (await response.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+      };
+    }>;
+  };
+
+  const rawText = payload.choices?.[0]?.message?.content?.trim() ?? "";
+
+  if (!rawText) {
+    const error = new Error("Groq returned an empty response.") as Error & {
+      details?: ProviderErrorDetails;
+    };
+    error.details = {
+      provider: "groq",
+      model: env.groqModel,
+      reason: "Groq returned an empty response.",
+      retryable: true,
+    };
+    throw error;
+  }
+
+  let parsed: Partial<{
+    title: string;
+    summary: string;
+    coachMessage: string;
+    accountability: string;
+    focus: string;
+    actions: string[];
+    evidence: Array<{
+      label: string;
+      value: string;
+    }>;
+  }>;
+
+  try {
+    parsed = JSON.parse(rawText) as Partial<{
+      title: string;
+      summary: string;
+      coachMessage: string;
+      accountability: string;
+      focus: string;
+      actions: string[];
+      evidence: Array<{
+        label: string;
+        value: string;
+      }>;
+    }>;
+  } catch {
+    const error = new Error("Groq returned invalid JSON.") as Error & {
+      details?: ProviderErrorDetails;
+    };
+    error.details = {
+      provider: "groq",
+      model: env.groqModel,
+      reason: "Groq returned invalid JSON.",
+      retryable: true,
+    };
+    throw error;
+  }
+
+  return normalizeGeneratedBrief(parsed, context, cacheKey, "groq", env.groqModel);
+}
+
+function getPreferredAiProviders() {
+  switch (env.aiProvider) {
+    case "groq":
+      return env.hasGroqEnv ? (["groq"] as const) : ([] as const);
+    case "gemini":
+      return env.hasGoogleAiEnv ? (["gemini"] as const) : ([] as const);
+    case "fallback":
+      return [] as const;
+    case "auto":
+    default: {
+      const providers: AiProvider[] = [];
+
+      if (env.hasGroqEnv) {
+        providers.push("groq");
+      }
+
+      if (env.hasGoogleAiEnv) {
+        providers.push("gemini");
+      }
+
+      return providers;
+    }
+  }
 }
 
 async function buildBriefingContext(
@@ -517,34 +695,68 @@ export async function createPersonalizedBriefing(
 
   if (options?.skipAi) {
     return buildFallbackBriefing(context, cacheKey, {
+      provider: getPreferredAiProviders()[0] ?? "groq",
+      model:
+        getPreferredAiProviders()[0] === "gemini"
+          ? env.googleAiModel
+          : env.groqModel,
       reason:
         options.skipAiReason ??
-        "Gemini is paused temporarily, so Proof is using the local coach engine.",
+        "AI coaching is paused temporarily, so Proof is using the local coach engine.",
       retryable: true,
     });
   }
 
-  if (!env.hasGoogleAiEnv) {
+  const providers = getPreferredAiProviders();
+
+  if (providers.length === 0) {
     return buildFallbackBriefing(context, cacheKey, {
-      reason: "Gemini API key is not configured on the server.",
+      provider: env.aiProvider === "gemini" ? "gemini" : "groq",
+      model: env.aiProvider === "gemini" ? env.googleAiModel : env.groqModel,
+      reason:
+        env.aiProvider === "fallback"
+          ? "AI coaching is set to fallback mode."
+          : "No hosted AI provider is configured on the server.",
       retryable: false,
     });
   }
 
-  try {
-    return await generateWithGemini(context, cacheKey);
-  } catch (error) {
-    const details =
-      error instanceof Error &&
-      "details" in error &&
-      typeof error.details === "object" &&
-      error.details !== null
-        ? (error.details as GeminiErrorDetails)
-        : {
-            reason: error instanceof Error ? error.message : "Gemini request failed.",
-            retryable: true,
-          };
+  let lastErrorDetails: ProviderErrorDetails | null = null;
 
-    return buildFallbackBriefing(context, cacheKey, details);
+  for (const provider of providers) {
+    try {
+      if (provider === "groq") {
+        return await generateWithGroq(context, cacheKey);
+      }
+
+      return await generateWithGemini(context, cacheKey);
+    } catch (error) {
+      lastErrorDetails =
+        error instanceof Error &&
+        "details" in error &&
+        typeof error.details === "object" &&
+        error.details !== null
+          ? (error.details as ProviderErrorDetails)
+          : {
+              provider,
+              model: provider === "groq" ? env.groqModel : env.googleAiModel,
+              reason:
+                error instanceof Error
+                  ? error.message
+                  : `${provider} request failed.`,
+              retryable: true,
+            };
+    }
   }
+
+  return buildFallbackBriefing(
+    context,
+    cacheKey,
+    lastErrorDetails ?? {
+      provider: providers[0] ?? "groq",
+      model: (providers[0] ?? "groq") === "groq" ? env.groqModel : env.googleAiModel,
+      reason: "AI request failed.",
+      retryable: true,
+    },
+  );
 }

@@ -86,6 +86,9 @@ Required environment variables:
 
 - `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development
 - `NEXT_PUBLIC_APP_URL=https://provisional-beta.vercel.app` in Vercel production
+- `AI_PROVIDER=auto` to let Proof prefer Groq, then Gemini, then local fallback
+- `GROQ_API_KEY=...` if you want Groq-powered coach briefings
+- `GROQ_MODEL=openai/gpt-oss-20b` optional override
 - `GOOGLE_GENERATIVE_AI_API_KEY=...` if you want AI briefings enabled
 - `GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash-lite` optional override
 
@@ -101,12 +104,17 @@ new magic-link emails use the correct callback origin.
 
 ## AI briefings
 
-Proof can generate a short personalized briefing on the Today screen using Gemini.
+Proof can generate a short personalized briefing on the Today screen using a hosted AI provider.
 
 The current implementation:
 
-- uses `GOOGLE_GENERATIVE_AI_API_KEY` from Google AI Studio
-- defaults to `gemini-2.5-flash-lite`
+- supports provider order:
+  - `AI_PROVIDER=auto` -> Groq, then Gemini, then local fallback
+  - `AI_PROVIDER=groq` -> Groq only, then local fallback
+  - `AI_PROVIDER=gemini` -> Gemini only, then local fallback
+  - `AI_PROVIDER=fallback` -> local coach only
+- uses `GROQ_API_KEY` with default model `openai/gpt-oss-20b`
+- also supports `GOOGLE_GENERATIVE_AI_API_KEY` with default model `gemini-2.5-flash-lite`
 - changes the briefing by time window:
   - morning brief
   - midday reset
@@ -122,15 +130,19 @@ The current implementation:
   - monthly mission progress
   - drift alerts
 
-If the Gemini key is missing or the API fails, the app falls back to a deterministic
+If no hosted AI key is configured or the active provider fails, the app falls back to a deterministic
 rule-based briefing so the UI still works.
 
-If Gemini is configured but unavailable, the Today screen now shows the provider error
+If the hosted AI provider is configured but unavailable, the Today screen now shows the provider error
 directly inside the coach card so you can tell the difference between:
 
 - missing key
 - quota / rate-limit exhaustion
 - invalid model or auth problems
+
+Proof also locks one successful hosted generation per active briefing window and pauses
+hosted AI until the next day after a `429` rate-limit response, so the app does not
+waste free-tier quota on repeated refreshes.
 
 ## Working product promise
 

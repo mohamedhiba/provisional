@@ -33,7 +33,7 @@ export type PersonalizedBriefing = {
     value: string;
   }>;
   diagnostic?: {
-    provider: "gemini";
+    provider: "gemini" | "groq";
     model: string;
     code?: number;
     status?: string;
@@ -41,7 +41,7 @@ export type PersonalizedBriefing = {
     retryable: boolean;
   };
   generatedAt: string;
-  source: "gemini" | "fallback";
+  source: "gemini" | "groq" | "fallback";
   cacheKey: string;
 };
 
