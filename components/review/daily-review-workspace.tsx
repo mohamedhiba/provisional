@@ -32,22 +32,27 @@ const reviewFields = [
   {
     key: "finishedText",
     label: "What did you finish?",
+    placeholder: "What concrete work was actually completed today?",
   },
   {
     key: "avoidedText",
     label: "What did you avoid?",
+    placeholder: "What meaningful task stayed open or got dodged?",
   },
   {
     key: "whyAvoidedText",
     label: "Why did you avoid it?",
+    placeholder: "Name the real reason: confusion, friction, fear, tiredness, distraction, overplanning...",
   },
   {
     key: "wastedTimeText",
     label: "What wasted your time?",
+    placeholder: "Scrolling, admin work, context switching, fake productivity, poor sleep spillover...",
   },
   {
     key: "tomorrowFirstMove",
     label: "Tomorrow's first move",
+    placeholder: "What is the first hard move tomorrow morning before the day gets noisy?",
   },
 ] satisfies Array<{
   key: keyof Pick<
@@ -59,6 +64,7 @@ const reviewFields = [
     | "tomorrowFirstMove"
   >;
   label: string;
+  placeholder: string;
 }>;
 
 export function DailyReviewWorkspace() {
@@ -220,6 +226,7 @@ export function DailyReviewWorkspace() {
                 className={textAreaClassName}
                 value={form[field.key]}
                 onChange={(event) => setField(field.key, event.target.value)}
+                placeholder={field.placeholder}
               />
             </div>
           ))}

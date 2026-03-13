@@ -161,25 +161,45 @@ export function MonthlyMissionWorkspace() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Theme"
-            value={form.focusTheme.trim() || "Unset"}
-            detail="The one lens this month should be judged through."
+            label="Mission status"
+            value={mission ? "Set" : "Open"}
+            detail="Whether this month has been locked in as a real campaign."
           />
           <MetricCard
-            label="Targets"
-            value={`${progress.completedTargets}/${progress.activeTargets || 0}`}
-            detail="Completed measurable targets this month."
+            label="Active targets"
+            value={`${progress.activeTargets || 0}`}
+            detail="Measurable targets currently being judged this month."
+          />
+          <MetricCard
+            label="Completed"
+            value={`${progress.completedTargets}`}
+            detail="Targets already brought across the line."
           />
           <MetricCard
             label="Progress"
             value={`${progress.progressPercent}%`}
             detail="Average progress across active targets."
           />
-          <MetricCard
-            label="Week bridge"
-            value={form.currentWeekFocus.trim() || "Unset"}
-            detail="What this week must reinforce."
-          />
+        </div>
+
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Focus theme
+            </p>
+            <p className="mt-3 text-base leading-7 text-stone-100">
+              {form.focusTheme.trim() || "Still undefined. Pick one lens this month should be judged through."}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Current week bridge
+            </p>
+            <p className="mt-3 text-base leading-7 text-stone-100">
+              {form.currentWeekFocus.trim() ||
+                "Still undefined. State what this week must prove for the month."}
+            </p>
+          </div>
         </div>
       </section>
 

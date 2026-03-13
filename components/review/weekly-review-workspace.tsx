@@ -28,18 +28,22 @@ const reviewFields = [
   {
     key: "movedForwardText",
     label: "What actually moved life forward this week?",
+    placeholder: "Which actions created real movement instead of just activity?",
   },
   {
     key: "wastedEffortText",
     label: "What did you spend time on that did not matter?",
+    placeholder: "Where did time go without moving the month, career, study, or health forward?",
   },
   {
     key: "improveText",
     label: "What is the one thing to improve next week?",
+    placeholder: "What single system change would make next week cleaner and harder to drift through?",
   },
   {
     key: "eliminateText",
     label: "What should you eliminate next week?",
+    placeholder: "Which behavior, excuse, task type, or commitment gets cut next week?",
   },
 ] satisfies Array<{
   key: keyof Pick<
@@ -47,6 +51,7 @@ const reviewFields = [
     "movedForwardText" | "wastedEffortText" | "improveText" | "eliminateText"
   >;
   label: string;
+  placeholder: string;
 }>;
 
 function formatHours(value: number) {
@@ -262,6 +267,7 @@ export function WeeklyReviewWorkspace() {
                   className={textAreaClassName}
                   value={form[field.key]}
                   onChange={(event) => setField(field.key, event.target.value)}
+                  placeholder={field.placeholder}
                 />
               </div>
             ))}
@@ -274,6 +280,7 @@ export function WeeklyReviewWorkspace() {
                 className={textAreaClassName}
                 value={form.nextWeekFocus}
                 onChange={(event) => setField("nextWeekFocus", event.target.value)}
+                placeholder="What is the one weekly focus that should make next week feel more aligned than this one?"
               />
             </div>
 

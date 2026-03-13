@@ -66,7 +66,7 @@ export function AnalyticsOverview() {
         />
         <MetricCard
           label="Deep work hours"
-          value={`${summary.deepWorkHours.toFixed(1)}`}
+          value={`${summary.deepWorkHours.toFixed(1)}h`}
           detail={`${summary.sessionCount} focus session${summary.sessionCount === 1 ? "" : "s"} logged this week.`}
         />
         <MetricCard
