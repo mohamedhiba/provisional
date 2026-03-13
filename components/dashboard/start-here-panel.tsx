@@ -1,0 +1,68 @@
+"use client";
+
+import Link from "next/link";
+
+import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
+import { useDailyReview } from "@/components/providers/daily-review-provider";
+import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
+import { useTodayPlan } from "@/components/providers/today-plan-provider";
+
+export function StartHerePanel() {
+  const { mission } = useMonthlyMission();
+  const { dailyPlan } = useTodayPlan();
+  const { sessions } = useFocusSessions();
+  const { review } = useDailyReview();
+
+  const isEmpty =
+    !mission?.focusTheme.trim() &&
+    !dailyPlan.oneThing.trim() &&
+    sessions.length === 0 &&
+    !review;
+
+  if (!isEmpty) {
+    return null;
+  }
+
+  return (
+    <section className="surface-panel rounded-[2rem] p-6 sm:p-7">
+      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+            Start here
+          </p>
+          <h2 className="mt-3 text-2xl tracking-tight text-stone-50">
+            The app gets sharper once the first loop is complete.
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-300">
+            Define the month, pick today&apos;s highest-leverage task, log one honest
+            work block, and close the day. After that, the pressure system becomes real.
+          </p>
+        </div>
+        <Link
+          href="/mission"
+          className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-5 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
+        >
+          Open setup loop
+        </Link>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["1", "Set the month", "Define the focus theme and 1-3 measurable targets."],
+          ["2", "Choose the one thing", "Make the hardest priority impossible to ignore."],
+          ["3", "Log a focus block", "Capture at least one real session as proof."],
+          ["4", "Close the day", "Finish with a nightly review so the score counts."],
+        ].map(([step, title, body]) => (
+          <div key={step} className="surface-panel-soft rounded-[1.5rem] p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-amber-200/80">
+              Step {step}
+            </p>
+            <p className="mt-3 text-base font-semibold text-stone-100">{title}</p>
+            <p className="mt-3 text-sm leading-7 text-stone-300">{body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+

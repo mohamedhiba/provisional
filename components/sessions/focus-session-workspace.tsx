@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { Button } from "@/components/ui/button";
+import { InfoCallout } from "@/components/ui/info-callout";
 import {
   computeFocusSessionMetrics,
   defaultFocusSessionDraft,
@@ -61,19 +62,28 @@ export function FocusSessionWorkspace() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-      <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
-        <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-          Log focus session
-        </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
-          Make effort visible.
-        </h2>
-        <p className="mt-3 max-w-xl text-sm leading-7 text-stone-400">
-          The logger is intentionally fast. Capture the real work block, how long it
-          actually lasted, and whether it was deep or shallow effort.
-        </p>
+      <div className="space-y-6">
+        {sessions.length === 0 ? (
+          <InfoCallout
+            eyebrow="Session guide"
+            title="Keep session logging blunt and quick."
+            body="Use one real work block per entry. Name the task plainly, choose the pillar it served, and record the actual minutes even if the block was messy. The goal is evidence, not perfect tracking theater."
+          />
+        ) : null}
 
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+        <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
+          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+            Log focus session
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
+            Make effort visible.
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-stone-400">
+            The logger is intentionally fast. Capture the real work block, how long it
+            actually lasted, and whether it was deep or shallow effort.
+          </p>
+
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-[0.25em] text-stone-500">
               Task
@@ -176,16 +186,17 @@ export function FocusSessionWorkspace() {
             </div>
           ) : null}
 
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm leading-6 text-stone-500">
-              {hasLoaded ? syncMessage : "Loading today's sessions..."}
-            </p>
-            <Button size="lg" type="submit">
-              Log session
-            </Button>
-          </div>
-        </form>
-      </section>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm leading-6 text-stone-500">
+                {hasLoaded ? syncMessage : "Loading today's sessions..."}
+              </p>
+              <Button size="lg" type="submit">
+                Log session
+              </Button>
+            </div>
+          </form>
+        </section>
+      </div>
 
       <section className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">

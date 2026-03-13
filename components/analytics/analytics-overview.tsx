@@ -8,6 +8,7 @@ import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { computeDailyScore } from "@/lib/daily-score";
 import { formatMinutes } from "@/lib/focus-session";
 
@@ -38,9 +39,20 @@ export function AnalyticsOverview() {
     sessions,
     reviewCompleted: Boolean(review),
   });
+  const hasMeaningfulActivity = snapshot.activityGrid.some((day) => day.intensity > 0);
 
   return (
     <div className="space-y-6">
+      {!hasMeaningfulActivity ? (
+        <InfoCallout
+          eyebrow="Analytics guide"
+          title="The dashboard wakes up after a few honest days."
+          body="Start by setting the one thing, logging one focus session, and closing the day with a review. Once that loop runs a few times, this page will show trends, alerts, and a real activity map instead of flat zeroes."
+          actionHref="/today"
+          actionLabel="Run the first loop"
+        />
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Top-task completion"
@@ -97,8 +109,8 @@ export function AnalyticsOverview() {
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
           Trends should expose whether the system is tightening or slipping.
         </h2>
-        <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-white/8">
-          <table className="min-w-full border-collapse text-left">
+        <div className="mt-8 overflow-x-auto rounded-[1.75rem] border border-white/8">
+          <table className="min-w-[720px] border-collapse text-left xl:min-w-full">
             <thead className="bg-white/[0.04]">
               <tr>
                 {["Week", "Top-task completion", "Deep work", "Drift days", "Closeout"].map((heading) => (
@@ -112,14 +124,14 @@ export function AnalyticsOverview() {
               </tr>
             </thead>
             <tbody>
-              {snapshot.weeklyHistory.length === 0 ? (
+              {!hasMeaningfulActivity ? (
                 <tr>
                   <td
                     colSpan={5}
                     className="px-5 py-6 text-sm leading-6 text-stone-400"
                   >
-                    No history yet. Use the app for a few weeks and the trend line will
-                    start telling the truth.
+                    You have not logged enough activity yet for trend history. A few
+                    closed days will turn this table into a real scorecard.
                   </td>
                 </tr>
               ) : (
@@ -159,8 +171,8 @@ export function AnalyticsOverview() {
         <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
           Current week breakdown
         </p>
-        <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/8">
-          <table className="min-w-full border-collapse text-left">
+        <div className="mt-6 overflow-x-auto rounded-[1.75rem] border border-white/8">
+          <table className="min-w-[720px] border-collapse text-left xl:min-w-full">
             <thead className="bg-white/[0.04]">
               <tr>
                 {["Day", "Score", "Top task", "Deep work", "Closeout"].map((heading) => (
@@ -174,14 +186,14 @@ export function AnalyticsOverview() {
               </tr>
             </thead>
             <tbody>
-              {summary.dailyBreakdown.length === 0 ? (
+              {!hasMeaningfulActivity ? (
                 <tr>
                   <td
                     colSpan={5}
                     className="px-5 py-6 text-sm leading-6 text-stone-400"
                   >
-                    No weekly evidence yet. Start defining the day, logging sessions,
-                    and closing nights honestly.
+                    Current-week detail appears once you begin closing days and logging
+                    real work.
                   </td>
                 </tr>
               ) : (

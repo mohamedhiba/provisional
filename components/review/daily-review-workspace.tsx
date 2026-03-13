@@ -6,6 +6,7 @@ import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { Button } from "@/components/ui/button";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { getTodayIsoDate } from "@/lib/daily-plan";
 import {
   createEmptyDailyReview,
@@ -105,6 +106,14 @@ export function DailyReviewWorkspace() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
+      {!review && !dailyPlan.oneThing.trim() && sessions.length === 0 ? (
+        <InfoCallout
+          eyebrow="Review guide"
+          title="Night reviews should be short, honest, and slightly uncomfortable."
+          body="Write what actually happened, not what should have happened. If the day was vague or thin, say that plainly, then decide the first concrete move for tomorrow."
+        />
+      ) : null}
+
       <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
         <div className="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>

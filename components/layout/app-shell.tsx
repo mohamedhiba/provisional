@@ -70,18 +70,26 @@ export function AppShell({ children }: PropsWithChildren) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex items-center justify-between rounded-[1.35rem] border px-4 py-3 transition duration-200",
+                      "group flex items-center justify-between rounded-[1.35rem] border px-4 py-3.5 transition duration-200",
                       active
                         ? "border-[#e0bf8c]/30 bg-[linear-gradient(135deg,rgba(215,168,91,0.18),rgba(130,180,172,0.1))] text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                         : "border-transparent bg-white/[0.03] text-stone-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-stone-100",
                     )}
-                  >
+                    >
                     <span className="flex items-center gap-3">
-                      <Icon className={cn("h-4 w-4", active ? "text-amber-100" : "text-stone-500")} />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <Icon
+                        className={cn(
+                          "h-[1.05rem] w-[1.05rem]",
+                          active ? "text-amber-100" : "text-stone-500",
+                        )}
+                      />
+                      <span className="text-[0.96rem] font-semibold tracking-[-0.01em]">
+                        {item.label}
+                      </span>
                     </span>
-                    <span className="text-[10px] uppercase tracking-[0.28em] text-stone-500 transition group-hover:text-stone-400">
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-stone-500 transition group-hover:text-stone-400">
                       {item.shortLabel}
                     </span>
                   </Link>

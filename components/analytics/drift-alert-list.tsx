@@ -36,7 +36,8 @@ export function DriftAlertList({ alerts }: { alerts: AnalyticsDriftAlert[] }) {
           Drift detection
         </p>
         <p className="mt-3 text-base leading-7 text-stone-100">
-          No strong drift pattern is active right now. Keep protecting the standard.
+          No strong drift pattern is active right now. Keep protecting the standard,
+          and this space will light up only when the system sees a real slide.
         </p>
       </div>
     );
@@ -72,4 +73,3 @@ export function DriftAlertList({ alerts }: { alerts: AnalyticsDriftAlert[] }) {
     </div>
   );
 }
-

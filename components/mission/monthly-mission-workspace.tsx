@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { Button } from "@/components/ui/button";
 import {
   computeMonthlyMissionProgress,
@@ -147,6 +148,14 @@ export function MonthlyMissionWorkspace() {
         </div>
       </section>
 
+      {!mission ? (
+        <InfoCallout
+          eyebrow="Monthly guide"
+          title="Keep this page concrete."
+          body="Use one short theme, one main mission, and a few measurable targets. The placeholders are examples of structure, not prefilled commitments you need to keep."
+        />
+      ) : null}
+
       <form className="grid gap-6 xl:grid-cols-[1fr_0.95fr]" onSubmit={handleSubmit}>
         <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
           <div className="grid gap-5">
@@ -158,8 +167,11 @@ export function MonthlyMissionWorkspace() {
                 className={inputClassName}
                 value={form.focusTheme}
                 onChange={(event) => setField("focusTheme", event.target.value)}
-                placeholder="Career acceleration, academic recovery, discipline rebuild..."
+                placeholder="Example: Career acceleration"
               />
+              <p className="text-xs leading-6 text-stone-500">
+                Short phrase, not a paragraph.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -227,7 +239,7 @@ export function MonthlyMissionWorkspace() {
                     className={inputClassName}
                     value={target.label}
                     onChange={(event) => updateTarget(target.id, "label", event.target.value)}
-                    placeholder="Applications sent, study blocks, workouts..."
+                    placeholder="Example: Applications sent"
                   />
                   <div className="grid gap-3 sm:grid-cols-3">
                     <input
@@ -307,4 +319,3 @@ export function MonthlyMissionWorkspace() {
     </div>
   );
 }
-
