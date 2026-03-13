@@ -57,7 +57,7 @@ export function AppShell({ children }: PropsWithChildren) {
               <Logo />
             </div>
 
-            <div className="mt-7 flex-1 min-h-0 overflow-y-auto pr-1">
+            <div className="scrollbar-none mt-7 flex-1 min-h-0 overflow-y-auto pr-1">
               <div className="space-y-4">
                 <div className="surface-panel-soft shrink-0 rounded-[1.5rem] px-4 py-4">
                   <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.26em] text-stone-400">
