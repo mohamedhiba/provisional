@@ -1,13 +1,14 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { Button } from "@/components/ui/button";
 import { InfoCallout } from "@/components/ui/info-callout";
+import { formatPlanDate } from "@/lib/daily-plan";
 import {
   computeFocusSessionMetrics,
   defaultFocusSessionDraft,
@@ -36,6 +37,16 @@ export function FocusSessionWorkspace() {
   const pillars = onboarding.pillars.length > 0
     ? onboarding.pillars
     : ["Career", "Academics", "Health", "Discipline"];
+  const pillarSignature = pillars.join("|");
+
+  useEffect(() => {
+    setDraft({
+      ...defaultFocusSessionDraft,
+      taskTitle: "",
+      pillar: pillars[0] ?? "",
+    });
+    setFormError("");
+  }, [pillarSignature, today]);
 
   function setField<K extends keyof FocusSessionDraft>(key: K, value: FocusSessionDraft[K]) {
     setDraft((current) => ({
@@ -74,16 +85,31 @@ export function FocusSessionWorkspace() {
         ) : null}
 
         <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
-          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-            Log focus session
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
-            Make effort visible.
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-stone-400">
-            The logger is intentionally fast. Capture the real work block, how long it
-            actually lasted, and whether it was deep or shallow effort.
-          </p>
+          <div className="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                Log focus session
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
+                Make effort visible.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-stone-400">
+                The logger is intentionally fast. Capture the real work block, how long it
+                actually lasted, and whether it was deep or shallow effort.
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-5 py-4">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Active day
+              </p>
+              <p className="mt-2 text-xl font-semibold text-stone-50">
+                {formatPlanDate(today)}
+              </p>
+              <p className="mt-2 text-sm text-stone-400">
+                New sessions logged now belong only to this day.
+              </p>
+            </div>
+          </div>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">

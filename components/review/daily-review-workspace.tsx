@@ -8,6 +8,7 @@ import { useFocusSessions } from "@/components/providers/focus-sessions-provider
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { Button } from "@/components/ui/button";
 import { InfoCallout } from "@/components/ui/info-callout";
+import { formatPlanDate } from "@/lib/daily-plan";
 import {
   createEmptyDailyReview,
   validateDailyReview,
@@ -131,10 +132,12 @@ export function DailyReviewWorkspace() {
           </div>
           <div className="rounded-[1.5rem] border border-amber-300/20 bg-amber-300/10 px-5 py-4">
             <p className="text-[10px] uppercase tracking-[0.25em] text-amber-200/75">
-              {review ? "Final score" : "Draft score"}
+              Active day
             </p>
-            <p className="mt-2 text-2xl font-semibold text-stone-50">{draftScore}</p>
-            <p className="mt-1 text-sm text-stone-300">{scoreLabel}</p>
+            <p className="mt-2 text-xl font-semibold text-stone-50">{formatPlanDate(today)}</p>
+            <p className="mt-2 text-sm text-stone-300">
+              {review ? `Final score ${draftScore} • ${scoreLabel}` : `Draft score ${draftScore} • ${scoreLabel}`}
+            </p>
           </div>
         </div>
 

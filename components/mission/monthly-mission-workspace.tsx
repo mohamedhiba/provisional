@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { InfoCallout } from "@/components/ui/info-callout";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,9 @@ const textAreaClassName =
   "min-h-24 w-full rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-stone-100 outline-none transition focus:border-amber-300/40";
 
 export function MonthlyMissionWorkspace() {
+  const { monthStart } = useCurrentDate();
   const { mission, hasLoaded, syncMessage, saveMission } = useMonthlyMission();
-  const [form, setForm] = useState<MonthlyMissionState>(createEmptyMonthlyMission());
+  const [form, setForm] = useState<MonthlyMissionState>(createEmptyMonthlyMission(monthStart));
   const [formError, setFormError] = useState("");
   const progress = computeMonthlyMissionProgress(form);
 
@@ -34,8 +36,8 @@ export function MonthlyMissionWorkspace() {
       return;
     }
 
-    setForm(createEmptyMonthlyMission());
-  }, [mission]);
+    setForm(createEmptyMonthlyMission(monthStart));
+  }, [mission, monthStart]);
 
   function setField<K extends keyof MonthlyMissionState>(
     key: K,

@@ -41,32 +41,85 @@ function getTooltip(day: AnalyticsActivityDay) {
   return `${formatActivityDate(day.date)} • ${details.join(" • ")}`;
 }
 
+function groupIntoWeeks(days: AnalyticsActivityDay[]) {
+  const weeks: AnalyticsActivityDay[][] = [];
+
+  for (let index = 0; index < days.length; index += 7) {
+    weeks.push(days.slice(index, index + 7));
+  }
+
+  return weeks;
+}
+
+function formatMonthLabel(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  }).format(new Date(`${date}T12:00:00`));
+}
+
 export function ActivityHeatmap({ days }: { days: AnalyticsActivityDay[] }) {
+  const weeks = groupIntoWeeks(days);
+  const latestPastDate = days.filter((day) => !day.isFuture).at(-1)?.date ?? "";
+
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-3">
-        <div className="grid shrink-0 grid-rows-7 gap-2 pt-6 text-[10px] uppercase tracking-[0.22em] text-stone-500">
-          {["Mon", "", "Wed", "", "Fri", "", "Sun"].map((label, index) => (
-            <span key={`${label}-${index}`} className="h-3 leading-3">
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="grid auto-cols-max grid-flow-col grid-rows-7 gap-2 overflow-x-auto pb-1">
-          {days.map((day) => (
-            <div
-              key={day.date}
-              title={getTooltip(day)}
-              className={`h-3 w-3 rounded-[3px] ${cellClassName(day)}`}
-            />
-          ))}
+      <div className="overflow-x-auto">
+        <div className="inline-grid min-w-full grid-cols-[auto_1fr] gap-x-3 gap-y-3">
+          <div />
+          <div className="flex gap-2 pl-[1px]">
+            {weeks.map((week, index) => {
+              const firstDay = week[0];
+              const previousWeek = weeks[index - 1]?.[0];
+              const shouldShowMonth =
+                index === 0 ||
+                (firstDay && previousWeek && formatMonthLabel(firstDay.date) !== formatMonthLabel(previousWeek.date));
+
+              return (
+                <div
+                  key={`month-${firstDay?.date ?? index}`}
+                  className="w-3 overflow-visible whitespace-nowrap text-[10px] uppercase tracking-[0.22em] text-stone-500"
+                >
+                  {shouldShowMonth && firstDay ? formatMonthLabel(firstDay.date) : ""}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid shrink-0 grid-rows-7 gap-2 text-[10px] uppercase tracking-[0.22em] text-stone-500">
+            {["Mon", "", "Wed", "", "Fri", "", "Sun"].map((label, index) => (
+              <span key={`${label}-${index}`} className="h-3 leading-3">
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex gap-2 pb-1">
+            {weeks.map((week, weekIndex) => (
+              <div
+                key={week[0]?.date ?? `week-${weekIndex}`}
+                className="grid grid-rows-7 gap-2"
+              >
+                {week.map((day) => {
+                  const isToday = day.date === latestPastDate && !day.isFuture;
+
+                  return (
+                    <div
+                      key={day.date}
+                      title={getTooltip(day)}
+                      className={`h-3 w-3 rounded-[3px] ${cellClassName(day)} ${isToday ? "ring-1 ring-amber-100/80 ring-offset-2 ring-offset-[#090b0f]" : ""}`}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
-        <span>Last 12 weeks of daily proof</span>
+        <span>Last 12 weeks of daily proof and drift pressure</span>
         <div className="flex items-center gap-2">
-          <span>Less</span>
+          <span>Light</span>
           {[0, 1, 2, 3, 4].map((level) => (
             <span
               key={level}
@@ -83,10 +136,9 @@ export function ActivityHeatmap({ days }: { days: AnalyticsActivityDay[] }) {
               })}`}
             />
           ))}
-          <span>More</span>
+          <span>Strong</span>
         </div>
       </div>
     </div>
   );
 }
-

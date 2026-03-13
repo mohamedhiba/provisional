@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import { Button, buttonStyles } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 import {
   createEmptyWeeklyReview,
   formatWeeklyRange,
-  getCurrentWeekStart,
   validateWeeklyReview,
   type WeeklyReviewState,
 } from "@/lib/weekly-review";
@@ -49,10 +49,11 @@ function formatHours(value: number) {
 }
 
 export function WeeklyReviewWorkspace() {
+  const { weekStart } = useCurrentDate();
   const { review, summary, hasLoaded, syncMessage, submitReview } = useWeeklyReview();
   const { mission } = useMonthlyMission();
   const [form, setForm] = useState<WeeklyReviewState>(
-    createEmptyWeeklyReview(getCurrentWeekStart()),
+    createEmptyWeeklyReview(weekStart),
   );
   const [formError, setFormError] = useState("");
   const missionProgress = computeMonthlyMissionProgress(mission);
@@ -63,8 +64,8 @@ export function WeeklyReviewWorkspace() {
       return;
     }
 
-    setForm(createEmptyWeeklyReview(getCurrentWeekStart()));
-  }, [review]);
+    setForm(createEmptyWeeklyReview(weekStart));
+  }, [review, weekStart]);
 
   function setField<K extends keyof WeeklyReviewState>(
     key: K,

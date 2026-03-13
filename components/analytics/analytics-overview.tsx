@@ -91,11 +91,14 @@ export function AnalyticsOverview() {
 
         <div className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-8">
           <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-            Activity map
+            Progress map
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-stone-50">
-            Daily proof, GitHub-style.
+            Daily proof across the last 12 weeks.
           </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">
+            Each square belongs to one calendar day. Stronger color means stronger execution evidence on that specific day, not a rolling average.
+          </p>
           <div className="mt-6">
             <ActivityHeatmap days={snapshot.activityGrid} />
           </div>
