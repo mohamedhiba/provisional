@@ -51,7 +51,7 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="relative min-h-screen text-stone-100">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-6">
-        <aside className="surface-panel mb-4 rounded-[2rem] p-4 lg:sticky lg:top-6 lg:mb-0 lg:h-[calc(100vh-3rem)] lg:w-[290px] lg:p-6">
+        <aside className="surface-panel mb-4 rounded-[2rem] p-4 lg:sticky lg:top-6 lg:mb-0 lg:h-[calc(100vh-3rem)] lg:w-[312px] lg:p-6 xl:w-[324px]">
           <div className="flex h-full flex-col">
             <Logo />
             <div className="mt-8 surface-panel-soft rounded-[1.5rem] px-4 py-3">
@@ -115,8 +115,8 @@ export function AppShell({ children }: PropsWithChildren) {
 
         <div className="surface-panel flex min-h-[calc(100vh-3rem)] flex-1 flex-col rounded-[2rem]">
           <header className="border-b border-white/8 px-5 py-5 sm:px-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="text-center lg:text-left">
                 <p className="surface-kicker">
                   Execution OS
                 </p>
@@ -127,7 +127,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   Know what matters. Do the work. Face the truth.
                 </h1>
               </div>
-              <div className="grid grid-cols-3 gap-3 sm:w-[420px]">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[420px]">
                 {headerMetrics.map(([label, value]) => (
                   <div
                     key={label}

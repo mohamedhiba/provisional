@@ -1,12 +1,11 @@
 "use client";
 
-import { Cloud, Link2, LogOut, Mail, Sparkles } from "lucide-react";
+import { Cloud, LogOut, Mail, Sparkles } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/components/providers/auth-provider";
 import { Button, buttonStyles } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const inputClassName =
   "h-11 w-full rounded-2xl border border-white/14 bg-white/[0.08] px-4 text-sm text-stone-50 outline-none transition placeholder:text-stone-500 focus:border-amber-300/40";
@@ -53,13 +52,13 @@ export function AccountPanel() {
   }
 
   return (
-    <section className="surface-panel-soft rounded-[1.75rem] p-4">
+    <section className="surface-panel-soft rounded-[1.75rem] p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500">
             Sync status
           </p>
-          <h3 className="mt-3 text-lg tracking-tight text-stone-50">
+          <h3 className="mt-3 font-sans text-[1.7rem] font-semibold tracking-[-0.03em] text-stone-50">
             {isConnected
               ? "Connected across devices"
               : canSync
@@ -67,12 +66,12 @@ export function AccountPanel() {
                 : "Device-only mode"}
           </h3>
         </div>
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
           {isConnected ? <Cloud className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
         </span>
       </div>
 
-      <div className="mt-4 rounded-[1.35rem] border border-white/10 bg-black/20 px-4 py-4">
+      <div className="mt-5 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4">
         <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
           {hasLoaded
             ? isConnected
@@ -91,7 +90,7 @@ export function AccountPanel() {
                 : "Supabase public auth keys are missing."
             : "Checking current session..."}
         </p>
-        <p className="mt-2 text-sm leading-6 text-stone-300">
+        <p className="mt-3 max-w-[24ch] text-sm leading-7 text-stone-300">
           {isConnected
             ? "Use this panel later for account management. Your current device stays canonical when there is overlap."
             : canSync
@@ -106,7 +105,7 @@ export function AccountPanel() {
             type="button"
             onClick={() => void handleSignOut()}
             disabled={isSigningOut}
-            className={buttonStyles({ variant: "secondary", size: "md" })}
+            className={buttonStyles({ variant: "secondary", size: "md" }) + " w-full justify-center"}
           >
             <LogOut className="mr-2 h-4 w-4" />
             {isSigningOut ? "Signing out..." : "Sign out"}
@@ -116,7 +115,7 @@ export function AccountPanel() {
           </p>
         </div>
       ) : canSync ? (
-        <form className="mt-4 space-y-4" onSubmit={handleMagicLink}>
+        <form className="mt-5 space-y-4" onSubmit={handleMagicLink}>
           <div className="space-y-2">
             <label className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
               Sync email
@@ -130,26 +129,33 @@ export function AccountPanel() {
               autoComplete="email"
             />
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" variant="primary" size="md" disabled={isSubmitting}>
+          <div className="grid gap-3">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={isSubmitting}
+              className="w-full justify-center"
+            >
               <Mail className="mr-2 h-4 w-4" />
               {isSubmitting ? "Sending link..." : "Send magic link"}
             </Button>
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full border border-white/10 px-3 py-2 text-xs uppercase tracking-[0.22em]",
-                "text-stone-400",
-              )}
-            >
-              <Link2 className="mr-2 h-3.5 w-3.5" />
-              Device-only until you connect
-            </span>
+            <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] px-4 py-3">
+              <p className="text-[11px] font-medium text-stone-100">
+                Stay device-first for now
+              </p>
+              <p className="mt-1 text-sm leading-6 text-stone-400">
+                Proof still works locally even if you skip sync today.
+              </p>
+            </div>
           </div>
         </form>
       ) : null}
 
       {message ? (
-        <p className="mt-4 text-sm leading-6 text-stone-300">{message}</p>
+        <div className="mt-4 rounded-[1.25rem] border border-emerald-300/14 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-stone-200">
+          {message}
+        </div>
       ) : null}
     </section>
   );

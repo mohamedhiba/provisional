@@ -39,13 +39,13 @@ export function OnboardingSyncStep({
 
   return (
     <div className="grid gap-5">
-      <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-5">
+      <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-stone-500">
               Cross-device sync
             </p>
-            <h3 className="mt-3 text-2xl tracking-tight text-stone-50">
+            <h3 className="mt-3 font-sans text-[1.8rem] font-semibold tracking-[-0.03em] text-stone-50">
               {isConnected
                 ? `Connected on ${user?.email ?? "your account"}`
                 : canSync
@@ -60,7 +60,7 @@ export function OnboardingSyncStep({
                   : "Supabase auth is not available in this environment, so Proof will stay device-only until sync is configured."}
             </p>
           </div>
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-amber-100">
             {isConnected ? <Cloud className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
           </span>
         </div>
@@ -68,13 +68,13 @@ export function OnboardingSyncStep({
 
       {isConnected || !canSync ? null : (
         <form
-          className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5"
+          className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5 sm:p-6"
           onSubmit={handleMagicLink}
         >
           <label className="text-xs uppercase tracking-[0.25em] text-stone-500">
             Email
           </label>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <input
               className={inputClassName}
               value={email}
@@ -82,7 +82,12 @@ export function OnboardingSyncStep({
               placeholder="you@example.com"
               autoComplete="email"
             />
-            <Button type="submit" size="lg" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isSubmitting}
+              className="w-full justify-center md:w-auto"
+            >
               <Mail className="mr-2 h-4 w-4" />
               {isSubmitting ? "Sending link..." : "Send magic link"}
             </Button>

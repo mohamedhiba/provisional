@@ -32,14 +32,14 @@ export function SetupGuideBanner() {
 
   if (!isVisible) {
     return (
-      <div className="flex items-center justify-between rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-stone-300">
           Guided setup is hidden. You have completed {completedCount} of {totalSteps} steps.
         </p>
         <button
           type="button"
           onClick={showGuide}
-          className={buttonStyles({ variant: "secondary", size: "sm" })}
+          className={buttonStyles({ variant: "secondary", size: "sm" }) + " justify-center"}
         >
           Open guide
         </button>
@@ -78,10 +78,10 @@ export function SetupGuideBanner() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
             href={currentStep.href}
-            className={buttonStyles({ variant: "primary", size: "md" })}
+            className={buttonStyles({ variant: "primary", size: "md" }) + " justify-center"}
           >
             {onCurrentPage ? "Finish this step" : currentStep.actionLabel}
           </Link>
