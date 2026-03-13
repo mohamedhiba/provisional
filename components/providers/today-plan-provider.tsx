@@ -13,12 +13,14 @@ import {
 
 import { useCurrentDate } from "@/components/providers/current-date-provider";
 import {
+  clearLocalDailyPlanState,
   createEmptyDailyPlan,
   normalizeDailyPlanState,
   readLocalDailyPlanState,
   writeLocalDailyPlanState,
   type DailyPlanState,
 } from "@/lib/daily-plan";
+import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -48,7 +50,10 @@ async function requestDailyPlan(
   planDate: string,
   body?: Record<string, unknown>,
 ) {
-  const query = new URLSearchParams({ date: planDate }).toString();
+  const query = new URLSearchParams({
+    date: planDate,
+    timeZone: getBrowserTimeZone(),
+  }).toString();
   const response = await fetch(`/api/daily-plan?${query}`, {
     method,
     headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
@@ -125,6 +130,15 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
 
         setSyncSource(payload.source);
         setSyncStatus(payload.remoteEnabled ? "ready" : "saved-local");
+        if (payload.message?.startsWith("Recovered")) {
+          const emptyPlan = createEmptyDailyPlan(planDate);
+          clearLocalDailyPlanState(planDate);
+          writeLocalDailyPlanState(emptyPlan);
+          lastSavedSnapshotRef.current = JSON.stringify(emptyPlan);
+          setDailyPlan(emptyPlan);
+          setSyncMessage(payload.message);
+          return;
+        }
         setSyncMessage(
           payload.remoteEnabled
             ? "Supabase is connected. Today's first save will persist there."

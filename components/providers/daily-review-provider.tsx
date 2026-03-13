@@ -11,12 +11,14 @@ import {
 import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import {
+  clearLocalDailyReviewState,
   createEmptyDailyReview,
   normalizeDailyReviewState,
   readLocalDailyReviewState,
   writeLocalDailyReviewState,
   type DailyReviewState,
 } from "@/lib/daily-review";
+import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -46,7 +48,10 @@ async function requestDailyReview(
   reviewDate: string,
   body?: Record<string, unknown>,
 ) {
-  const query = new URLSearchParams({ date: reviewDate }).toString();
+  const query = new URLSearchParams({
+    date: reviewDate,
+    timeZone: getBrowserTimeZone(),
+  }).toString();
   const response = await fetch(`/api/daily-review?${query}`, {
     method,
     headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
@@ -111,6 +116,15 @@ export function DailyReviewProvider({ children }: PropsWithChildren) {
               ? "Night review loaded from Supabase."
               : "Night review loaded from this device.",
           );
+          return;
+        }
+
+        if (payload.message?.startsWith("Recovered")) {
+          clearLocalDailyReviewState(reviewDate);
+          setReview(null);
+          setSyncSource("supabase");
+          setSyncStatus("ready");
+          setSyncMessage(payload.message);
           return;
         }
 

@@ -11,12 +11,14 @@ import {
 import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import {
+  clearLocalFocusSessions,
   normalizeFocusSession,
   normalizeFocusSessions,
   readLocalFocusSessions,
   writeLocalFocusSessions,
   type FocusSession,
 } from "@/lib/focus-session";
+import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -49,6 +51,7 @@ async function requestFocusSessions(
   id?: string,
 ) {
   const query = new URLSearchParams({ date: sessionDate });
+  query.set("timeZone", getBrowserTimeZone());
 
   if (id) {
     query.set("id", id);
@@ -118,6 +121,15 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
               ? "Sessions loaded from Supabase."
               : "Sessions loaded from this device.",
           );
+          return;
+        }
+
+        if (payload.message?.startsWith("Recovered")) {
+          clearLocalFocusSessions(sessionDate);
+          setSessions([]);
+          setSyncSource("supabase");
+          setSyncStatus("ready");
+          setSyncMessage(payload.message);
           return;
         }
 

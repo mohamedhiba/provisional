@@ -123,6 +123,14 @@ export function writeLocalDailyPlanState(state: DailyPlanState) {
   );
 }
 
+export function clearLocalDailyPlanState(planDate: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getDailyPlanStorageKey(planDate));
+}
+
 export function computeDailyPlanScore(plan: DailyPlanState) {
   const positiveScore =
     (plan.oneThingDone ? 30 : 0) +

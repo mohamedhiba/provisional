@@ -130,6 +130,14 @@ export function writeLocalFocusSessions(
   );
 }
 
+export function clearLocalFocusSessions(sessionDate: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getFocusSessionsStorageKey(sessionDate));
+}
+
 export function parseFocusSessionDraft(
   draft: FocusSessionDraft,
   sessionDate: string,

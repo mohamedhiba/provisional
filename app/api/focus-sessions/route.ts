@@ -8,6 +8,7 @@ import {
 import {
   deletePersistedFocusSession,
   loadPersistedFocusSessions,
+  repairLegacyFocusSessionsDate,
   upsertPersistedFocusSessions,
 } from "@/lib/focus-session-repository";
 import { env } from "@/lib/env";
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
   const { searchParams } = new URL(request.url);
   const sessionDate = searchParams.get("date");
+  const timeZone = searchParams.get("timeZone");
 
   if (!sessionDate) {
     return NextResponse.json({ message: "Missing date" }, { status: 400 });
@@ -48,6 +50,14 @@ export async function GET(request: Request) {
   }
 
   try {
+    const repairResult = await repairLegacyFocusSessionsDate(
+      {
+        authUserId: identity.authUserId,
+        deviceId: identity.deviceId,
+      },
+      sessionDate,
+      timeZone,
+    );
     const state = await loadPersistedFocusSessions(
       {
         authUserId: identity.authUserId,
@@ -61,6 +71,9 @@ export async function GET(request: Request) {
         state,
         source: state.length > 0 ? "supabase" : "none",
         remoteEnabled: true,
+        message: repairResult.repaired
+          ? `Recovered ${repairResult.movedCount} focus session${repairResult.movedCount === 1 ? "" : "s"} that had been assigned to the wrong day.`
+          : undefined,
       }),
       identity,
     );

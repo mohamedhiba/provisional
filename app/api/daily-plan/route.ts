@@ -7,6 +7,7 @@ import {
 } from "@/lib/daily-plan";
 import {
   loadPersistedDailyPlan,
+  repairLegacyDailyPlanDate,
   savePersistedDailyPlan,
 } from "@/lib/daily-plan-repository";
 import { env } from "@/lib/env";
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
   const { searchParams } = new URL(request.url);
   const planDate = searchParams.get("date") ?? getTodayIsoDate();
+  const timeZone = searchParams.get("timeZone");
 
   if (!env.hasSupabaseAdminEnv) {
     return withDeviceCookie(
@@ -43,6 +45,14 @@ export async function GET(request: Request) {
   }
 
   try {
+    const repairResult = await repairLegacyDailyPlanDate(
+      {
+        authUserId: identity.authUserId,
+        deviceId: identity.deviceId,
+      },
+      planDate,
+      timeZone,
+    );
     const state = await loadPersistedDailyPlan(
       {
         authUserId: identity.authUserId,
@@ -56,6 +66,9 @@ export async function GET(request: Request) {
         state,
         source: state ? "supabase" : "none",
         remoteEnabled: true,
+        message: repairResult.repaired
+          ? `Recovered a daily plan that had been assigned to ${planDate} instead of ${repairResult.correctedDate}.`
+          : undefined,
       }),
       identity,
     );

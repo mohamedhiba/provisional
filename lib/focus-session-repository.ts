@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getLegacyCorrectedDate } from "@/lib/day-boundary";
 import {
   normalizeFocusSessions,
   type FocusSession,
@@ -122,6 +123,69 @@ export async function loadPersistedFocusSessions(
     })),
     sessionDate,
   );
+}
+
+export async function repairLegacyFocusSessionsDate(
+  identity: PersistenceIdentity,
+  requestedDate: string,
+  timeZone?: string | null,
+) {
+  if (!timeZone) {
+    return { repaired: false, movedCount: 0 };
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const profile = await findProfileByIdentity(identity);
+
+  if (!profile) {
+    return { repaired: false, movedCount: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("focus_sessions")
+    .select("id, session_date, created_at")
+    .eq("profile_id", profile.id)
+    .eq("session_date", requestedDate);
+
+  if (error) {
+    throw error;
+  }
+
+  const sessions = (data ?? []) as Array<{
+    id: string;
+    session_date: string;
+    created_at: string | null;
+  }>;
+  const updates = sessions
+    .map((session) => ({
+      id: session.id,
+      correctedDate: getLegacyCorrectedDate(
+        session.session_date,
+        session.created_at,
+        timeZone,
+      ),
+    }))
+    .filter((session) => session.correctedDate);
+
+  if (updates.length === 0) {
+    return { repaired: false, movedCount: 0 };
+  }
+
+  for (const session of updates) {
+    const { error: updateError } = await supabase
+      .from("focus_sessions")
+      .update({ session_date: session.correctedDate })
+      .eq("id", session.id);
+
+    if (updateError) {
+      throw updateError;
+    }
+  }
+
+  return {
+    repaired: true,
+    movedCount: updates.length,
+  };
 }
 
 export async function upsertPersistedFocusSessions(

@@ -81,6 +81,14 @@ export function writeLocalDailyReviewState(state: DailyReviewState) {
   );
 }
 
+export function clearLocalDailyReviewState(reviewDate: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getDailyReviewStorageKey(reviewDate));
+}
+
 export function validateDailyReview(state: DailyReviewState) {
   const requiredFields = [
     state.finishedText,

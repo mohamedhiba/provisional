@@ -9,6 +9,7 @@ import {
 } from "@/lib/daily-review";
 import {
   loadPersistedDailyReview,
+  repairLegacyDailyReviewDate,
   savePersistedDailyReview,
 } from "@/lib/daily-review-repository";
 import { env } from "@/lib/env";
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
   const { searchParams } = new URL(request.url);
   const reviewDate = searchParams.get("date") ?? getTodayIsoDate();
+  const timeZone = searchParams.get("timeZone");
 
   if (!env.hasSupabaseAdminEnv) {
     return withDeviceCookie(
@@ -45,6 +47,14 @@ export async function GET(request: Request) {
   }
 
   try {
+    const repairResult = await repairLegacyDailyReviewDate(
+      {
+        authUserId: identity.authUserId,
+        deviceId: identity.deviceId,
+      },
+      reviewDate,
+      timeZone,
+    );
     const state = await loadPersistedDailyReview(
       {
         authUserId: identity.authUserId,
@@ -58,6 +68,9 @@ export async function GET(request: Request) {
         state,
         source: state ? "supabase" : "none",
         remoteEnabled: true,
+        message: repairResult.repaired
+          ? `Recovered a nightly review that had been assigned to ${reviewDate} instead of ${repairResult.correctedDate}.`
+          : undefined,
       }),
       identity,
     );
