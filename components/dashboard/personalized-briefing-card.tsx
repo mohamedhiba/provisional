@@ -208,6 +208,12 @@ export function PersonalizedBriefingCard() {
     (briefing?.source === "gemini" || briefing?.source === "groq") &&
     briefing.cacheKey === windowInfo.cacheBucket;
   const quotaLockActive = isQuotaLockActive(quotaLock, today);
+  const showCoachStatus =
+    quotaLockActive ||
+    status === "loading" ||
+    status === "error" ||
+    briefing?.source === "fallback" ||
+    Boolean(briefing?.diagnostic);
 
   useEffect(() => {
     const nextLock = readQuotaLock();
@@ -326,10 +332,8 @@ export function PersonalizedBriefingCard() {
   ]);
 
   return (
-    <section className="surface-panel relative overflow-hidden rounded-[2rem] p-6 sm:p-7">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,rgba(240,214,164,0.16),transparent_55%),radial-gradient(circle_at_top_right,rgba(75,85,179,0.16),transparent_45%)]" />
-
-      <div className="relative flex flex-col gap-5 border-b border-white/8 pb-6 xl:flex-row xl:items-start xl:justify-between">
+    <section className="surface-panel rounded-[2rem] p-6 sm:p-7">
+      <div className="flex flex-col gap-5 border-b border-white/8 pb-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="max-w-4xl">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-amber-100">
@@ -341,7 +345,7 @@ export function PersonalizedBriefingCard() {
             </span>
             <span
               className={`inline-flex rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] ${
-                briefing?.source === "gemini"
+                briefing?.source === "gemini" || briefing?.source === "groq"
                   ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
                   : briefing?.diagnostic
                     ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
@@ -390,7 +394,7 @@ export function PersonalizedBriefingCard() {
         </button>
       </div>
 
-      <div className="relative mt-6 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
         <div className="grid gap-4">
           <div className="rounded-[1.75rem] border border-amber-300/18 bg-[linear-gradient(135deg,rgba(215,168,91,0.18),rgba(255,255,255,0.04))] p-5 sm:p-6">
             <p className="text-[10px] uppercase tracking-[0.26em] text-amber-100/80">
@@ -498,44 +502,49 @@ export function PersonalizedBriefingCard() {
             ))}
           </div>
 
-          <div className="mt-5 rounded-[1.25rem] border border-white/8 bg-white/[0.03] px-4 py-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
-              Coach status
-            </p>
-            <p className="mt-2 text-sm leading-7 text-stone-300">
-              {quotaLockActive
-                ? `Hosted AI is paused until ${quotaLock?.lockedUntilDate}. Proof is reusing cached coaching and the local engine so you do not waste quota.`
-                : briefing?.source === "groq" || briefing?.source === "gemini"
-                  ? `${getProviderLabel(briefing.source)} has already generated this window's coach note. Proof will reuse it until the next briefing window opens.`
-                  : briefing?.diagnostic && hasProviderHttpFailure(briefing)
-                    ? `${getProviderLabel(briefing.diagnostic.provider)} is configured, but returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
-                    : briefing?.diagnostic
-                      ? `Hosted AI is currently unavailable, so Proof is using the local coach engine to keep the pressure on.`
-                      : "Hosted AI is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
-            </p>
-            {quotaLockActive && quotaLock?.reason ? (
-              <p className="mt-3 text-xs leading-6 text-stone-400">
-                {quotaLock.reason}
+          {showCoachStatus ? (
+            <div className="mt-5 rounded-[1.25rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                Coach status
               </p>
-            ) : null}
-            {briefing?.diagnostic && !quotaLockActive ? (
-              <p className="mt-3 text-xs leading-6 text-stone-400">
-                {briefing.diagnostic.reason}
+              <p className="mt-2 text-sm leading-7 text-stone-300">
+                {quotaLockActive
+                  ? `Hosted AI is paused until ${quotaLock?.lockedUntilDate}. Proof is reusing cached coaching and the local engine so you do not waste quota.`
+                  : briefing?.source === "groq" || briefing?.source === "gemini"
+                    ? `${getProviderLabel(briefing.source)} has already generated this window's coach note. Proof will reuse it until the next briefing window opens.`
+                    : briefing?.diagnostic && hasProviderHttpFailure(briefing)
+                      ? `${getProviderLabel(briefing.diagnostic.provider)} is configured, but returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
+                      : briefing?.diagnostic
+                        ? `Hosted AI is currently unavailable, so Proof is using the local coach engine to keep the pressure on.`
+                        : "Hosted AI is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
               </p>
-            ) : null}
-          </div>
+              {quotaLockActive && quotaLock?.reason ? (
+                <p className="mt-3 text-xs leading-6 text-stone-400">
+                  {quotaLock.reason}
+                </p>
+              ) : null}
+              {briefing?.diagnostic && !quotaLockActive ? (
+                <p className="mt-3 text-xs leading-6 text-stone-400">
+                  {briefing.diagnostic.reason}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </aside>
       </div>
 
-      <div className="relative mt-5 flex flex-wrap items-center gap-3 text-sm text-stone-500">
-        <span>
-          Built from today&apos;s plan, yesterday&apos;s closeout, weekly evidence, and monthly progress.
-        </span>
-        {hasLockedWindowBriefing ? <span>Coach note is locked for this window to protect quota.</span> : null}
-        {quotaLockActive ? <span>Hosted AI is paused until the next day because the current provider hit a rate limit.</span> : null}
-        {status === "loading" ? <span>Refreshing the coach...</span> : null}
-        {status === "error" ? <span>Coach refresh failed. The last stable version will stay visible.</span> : null}
-      </div>
+      {hasLockedWindowBriefing || quotaLockActive || status === "loading" || status === "error" ? (
+        <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-stone-500">
+          {hasLockedWindowBriefing ? (
+            <span>Coach note is locked for this window to protect quota.</span>
+          ) : null}
+          {quotaLockActive ? (
+            <span>Hosted AI is paused until the next day because the current provider hit a rate limit.</span>
+          ) : null}
+          {status === "loading" ? <span>Refreshing the coach...</span> : null}
+          {status === "error" ? <span>Coach refresh failed. The last stable version will stay visible.</span> : null}
+        </div>
+      ) : null}
     </section>
   );
 }

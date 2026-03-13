@@ -3,7 +3,6 @@
 import { CircleAlert, Clock3, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-import { IdentitySnapshot } from "@/components/dashboard/identity-snapshot";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PersonalizedPillars } from "@/components/dashboard/personalized-pillars";
 import { PersonalizedBriefingCard } from "@/components/dashboard/personalized-briefing-card";
@@ -27,7 +26,6 @@ import {
   getDailyScoreLabel,
 } from "@/lib/daily-score";
 import { computeFocusSessionMetrics, formatMinutes } from "@/lib/focus-session";
-import { dashboardData } from "@/lib/mock-data";
 
 const inputClassName =
   "w-full rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-stone-100 outline-none transition focus:border-amber-300/40";
@@ -132,10 +130,8 @@ export function TodayCommandCenter() {
 
   return (
     <div className="space-y-6">
-      <PersonalizedBriefingCard />
-      <IdentitySnapshot />
-      <VisionBridge />
       <StartHerePanel />
+      <PersonalizedBriefingCard />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
@@ -249,6 +245,8 @@ export function TodayCommandCenter() {
         </div>
       </div>
 
+      <VisionBridge />
+
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="rounded-[2rem] border border-white/8 bg-black/20 p-6 sm:p-7">
           <div className="flex items-center justify-between">
@@ -261,7 +259,7 @@ export function TodayCommandCenter() {
               </h3>
             </div>
           </div>
-          <PersonalizedPillars fallbackPillars={dashboardData.pillars} />
+          <PersonalizedPillars />
         </section>
 
         <section className="grid gap-6">

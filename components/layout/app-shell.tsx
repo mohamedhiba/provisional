@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const isTodayPage = pathname === "/today" || pathname.startsWith("/today/");
   const { dailyPlan, hasLoaded: todayLoaded } = useTodayPlan();
   const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
   const { review, hasLoaded: reviewLoaded } = useDailyReview();
@@ -124,14 +125,21 @@ export function AppShell({ children }: PropsWithChildren) {
           <header className="border-b border-white/8 px-5 py-5 sm:px-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="text-center lg:text-left">
-                <p className="surface-kicker">
-                  Execution OS
-                </p>
+                <p className="surface-kicker">Execution OS</p>
                 <p className="mt-5 text-xs uppercase tracking-[0.3em] text-stone-500">
                   {formatPlanDate(dailyPlan.planDate)}
                 </p>
-                <h1 className="mt-3 max-w-2xl text-[clamp(2rem,3vw,3rem)] tracking-tight text-stone-50">
-                  Know what matters. Do the work. Face the truth.
+                <h1
+                  className={cn(
+                    "mt-3 max-w-2xl tracking-tight text-stone-50",
+                    isTodayPage
+                      ? "text-[clamp(1.9rem,2.5vw,2.6rem)]"
+                      : "text-[clamp(2rem,3vw,3rem)]",
+                  )}
+                >
+                  {isTodayPage
+                    ? "Know what matters today. Then make the day prove it."
+                    : "Know what matters. Do the work. Face the truth."}
                 </h1>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[420px]">
@@ -150,15 +158,20 @@ export function AppShell({ children }: PropsWithChildren) {
                 ))}
               </div>
             </div>
-            <div>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-stone-400">
-                Treat the interface like a command room: fewer decorations, sharper signals, and visible proof when standards slip.
-              </p>
-            </div>
+            {!isTodayPage ? (
+              <div>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-stone-400">
+                  Treat the interface like a command room: fewer decorations, sharper
+                  signals, and visible proof when standards slip.
+                </p>
+              </div>
+            ) : null}
           </header>
-          <div className="px-5 pt-6 sm:px-8">
-            <SetupGuideBanner />
-          </div>
+          {!isTodayPage ? (
+            <div className="px-5 pt-6 sm:px-8">
+              <SetupGuideBanner />
+            </div>
+          ) : null}
           <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8">{children}</main>
         </div>
       </div>
