@@ -85,6 +85,8 @@ Required environment variables:
 
 - `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development
 - `NEXT_PUBLIC_APP_URL=https://provisional-beta.vercel.app` in Vercel production
+- `GOOGLE_GENERATIVE_AI_API_KEY=...` if you want AI briefings enabled
+- `GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash` optional override
 
 Required Supabase Auth settings:
 
@@ -95,6 +97,32 @@ Required Supabase Auth settings:
 
 After changing auth settings in Supabase or env vars in Vercel, redeploy the site so
 new magic-link emails use the correct callback origin.
+
+## AI briefings
+
+Proof can generate a short personalized briefing on the Today screen using Gemini.
+
+The current implementation:
+
+- uses `GOOGLE_GENERATIVE_AI_API_KEY` from Google AI Studio
+- defaults to `gemini-2.5-flash`
+- changes the briefing by time window:
+  - morning brief
+  - midday reset
+  - week opening
+  - midweek correction
+  - month opening
+  - midmonth checkpoint
+  - month-end push
+- grounds the message in persisted app data:
+  - today
+  - yesterday
+  - weekly review summary
+  - monthly mission progress
+  - drift alerts
+
+If the Gemini key is missing or the API fails, the app falls back to a deterministic
+rule-based briefing so the UI still works.
 
 ## Working product promise
 
