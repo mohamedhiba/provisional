@@ -67,6 +67,13 @@ type BriefingContext = {
   alerts: string[];
 };
 
+type GeminiErrorDetails = {
+  code?: number;
+  status?: string;
+  reason: string;
+  retryable: boolean;
+};
+
 function clampActions(actions: string[]) {
   return actions
     .map((item) => item.trim())
@@ -95,7 +102,11 @@ function buildEvidence(context: BriefingContext) {
   ];
 }
 
-function buildFallbackBriefing(context: BriefingContext, cacheKey: string): PersonalizedBriefing {
+function buildFallbackBriefing(
+  context: BriefingContext,
+  cacheKey: string,
+  diagnostic?: GeminiErrorDetails,
+): PersonalizedBriefing {
   const actions: string[] = [];
   const todayFocus =
     context.today.oneThing.trim() || context.month.currentWeekFocus.trim() || "Define the next serious move.";
@@ -185,6 +196,16 @@ function buildFallbackBriefing(context: BriefingContext, cacheKey: string): Pers
     focus: selected.focus,
     actions: clampActions(actions),
     evidence,
+    diagnostic: diagnostic
+      ? {
+          provider: "gemini",
+          model: env.googleAiModel,
+          code: diagnostic.code,
+          status: diagnostic.status,
+          reason: diagnostic.reason,
+          retryable: diagnostic.retryable,
+        }
+      : undefined,
     generatedAt: new Date().toISOString(),
     source: "fallback",
     cacheKey,
@@ -249,11 +270,12 @@ async function generateWithGemini(
   ].join("\n\n");
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.googleAiModel}:generateContent?key=${env.googleAiApiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${env.googleAiModel}:generateContent`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-goog-api-key": env.googleAiApiKey,
       },
       body: JSON.stringify({
         contents: [
@@ -273,7 +295,29 @@ async function generateWithGemini(
   );
 
   if (!response.ok) {
-    throw new Error(`Gemini request failed with ${response.status}.`);
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          error?: {
+            code?: number;
+            status?: string;
+            message?: string;
+          };
+        }
+      | null;
+
+    const code = payload?.error?.code ?? response.status;
+    const status = payload?.error?.status ?? response.statusText;
+    const message =
+      payload?.error?.message?.trim() ||
+      `Gemini request failed with ${response.status}.`;
+    const error = new Error(message) as Error & { details?: GeminiErrorDetails };
+    error.details = {
+      code,
+      status,
+      reason: message,
+      retryable: response.status === 429 || response.status >= 500,
+    };
+    throw error;
   }
 
   const payload = (await response.json()) as {
@@ -293,10 +337,17 @@ async function generateWithGemini(
       .trim() ?? "";
 
   if (!rawText) {
-    throw new Error("Gemini returned an empty response.");
+    const error = new Error("Gemini returned an empty response.") as Error & {
+      details?: GeminiErrorDetails;
+    };
+    error.details = {
+      reason: "Gemini returned an empty response.",
+      retryable: true,
+    };
+    throw error;
   }
 
-  const parsed = JSON.parse(rawText) as Partial<{
+  let parsed: Partial<{
     title: string;
     summary: string;
     coachMessage: string;
@@ -308,6 +359,30 @@ async function generateWithGemini(
       value: string;
     }>;
   }>;
+
+  try {
+    parsed = JSON.parse(rawText) as Partial<{
+      title: string;
+      summary: string;
+      coachMessage: string;
+      accountability: string;
+      focus: string;
+      actions: string[];
+      evidence: Array<{
+        label: string;
+        value: string;
+      }>;
+    }>;
+  } catch {
+    const error = new Error("Gemini returned invalid JSON.") as Error & {
+      details?: GeminiErrorDetails;
+    };
+    error.details = {
+      reason: "Gemini returned invalid JSON.",
+      retryable: true,
+    };
+    throw error;
+  }
 
   return normalizeGeneratedBrief(parsed, context, cacheKey);
 }
@@ -332,10 +407,14 @@ async function buildBriefingContext(
     loadPersistedOnboardingState(identity),
     loadPersistedDailyPlan(identity, window.date),
     loadPersistedDailyReview(identity, yesterday),
-    loadPersistedWeeklyReviewSnapshot(identity, window.weekStart),
-    loadPersistedWeeklyReviewSnapshot(identity, previousWeekStart),
+    loadPersistedWeeklyReviewSnapshot(identity, window.weekStart, window.date),
+    loadPersistedWeeklyReviewSnapshot(
+      identity,
+      previousWeekStart,
+      shiftIsoDate(window.weekStart, -1),
+    ),
     loadPersistedMonthlyMission(identity, window.monthStart),
-    loadAnalyticsSnapshot(identity),
+    loadAnalyticsSnapshot(identity, window.date),
   ]);
 
   const todayActivity =
@@ -433,12 +512,26 @@ export async function createPersonalizedBriefing(
   const context = await buildBriefingContext(identity, window);
 
   if (!env.hasGoogleAiEnv) {
-    return buildFallbackBriefing(context, cacheKey);
+    return buildFallbackBriefing(context, cacheKey, {
+      reason: "Gemini API key is not configured on the server.",
+      retryable: false,
+    });
   }
 
   try {
     return await generateWithGemini(context, cacheKey);
-  } catch {
-    return buildFallbackBriefing(context, cacheKey);
+  } catch (error) {
+    const details =
+      error instanceof Error &&
+      "details" in error &&
+      typeof error.details === "object" &&
+      error.details !== null
+        ? (error.details as GeminiErrorDetails)
+        : {
+            reason: error instanceof Error ? error.message : "Gemini request failed.",
+            retryable: true,
+          };
+
+    return buildFallbackBriefing(context, cacheKey, details);
   }
 }

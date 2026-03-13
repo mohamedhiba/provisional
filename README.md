@@ -86,7 +86,7 @@ Required environment variables:
 - `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development
 - `NEXT_PUBLIC_APP_URL=https://provisional-beta.vercel.app` in Vercel production
 - `GOOGLE_GENERATIVE_AI_API_KEY=...` if you want AI briefings enabled
-- `GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash` optional override
+- `GOOGLE_GENERATIVE_AI_MODEL=gemini-2.5-flash-lite` optional override
 
 Required Supabase Auth settings:
 
@@ -105,7 +105,7 @@ Proof can generate a short personalized briefing on the Today screen using Gemin
 The current implementation:
 
 - uses `GOOGLE_GENERATIVE_AI_API_KEY` from Google AI Studio
-- defaults to `gemini-2.5-flash`
+- defaults to `gemini-2.5-flash-lite`
 - changes the briefing by time window:
   - morning brief
   - midday reset
@@ -123,6 +123,13 @@ The current implementation:
 
 If the Gemini key is missing or the API fails, the app falls back to a deterministic
 rule-based briefing so the UI still works.
+
+If Gemini is configured but unavailable, the Today screen now shows the provider error
+directly inside the coach card so you can tell the difference between:
+
+- missing key
+- quota / rate-limit exhaustion
+- invalid model or auth problems
 
 ## Working product promise
 

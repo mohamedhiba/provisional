@@ -19,7 +19,7 @@ import {
 } from "@/lib/briefing";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 
-const briefingStorageKeyPrefix = "proof-coach-cache-v2";
+const briefingStorageKeyPrefix = "proof-coach-cache-v3";
 
 type ApiPayload = {
   briefing: PersonalizedBriefing;
@@ -215,10 +215,16 @@ export function PersonalizedBriefingCard() {
               className={`inline-flex rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] ${
                 briefing?.source === "gemini"
                   ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-                  : "border-white/10 bg-white/[0.03] text-stone-400"
+                  : briefing?.diagnostic
+                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
+                    : "border-white/10 bg-white/[0.03] text-stone-400"
               }`}
             >
-              {briefing?.source === "gemini" ? "Gemini live" : "Coach fallback"}
+              {briefing?.source === "gemini"
+                ? "Gemini live"
+                : briefing?.diagnostic
+                  ? "Gemini issue"
+                  : "Coach fallback"}
             </span>
           </div>
 
@@ -361,8 +367,15 @@ export function PersonalizedBriefingCard() {
             <p className="mt-2 text-sm leading-7 text-stone-300">
               {briefing?.source === "gemini"
                 ? "Gemini is active and generating a personalized coach message from your current evidence."
-                : "Gemini is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
+                : briefing?.diagnostic
+                  ? `Gemini is configured, but Google returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
+                  : "Gemini is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
             </p>
+            {briefing?.diagnostic ? (
+              <p className="mt-3 text-xs leading-6 text-stone-400">
+                {briefing.diagnostic.reason}
+              </p>
+            ) : null}
           </div>
         </aside>
       </div>

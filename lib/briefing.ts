@@ -32,6 +32,14 @@ export type PersonalizedBriefing = {
     label: string;
     value: string;
   }>;
+  diagnostic?: {
+    provider: "gemini";
+    model: string;
+    code?: number;
+    status?: string;
+    reason: string;
+    retryable: boolean;
+  };
   generatedAt: string;
   source: "gemini" | "fallback";
   cacheKey: string;
