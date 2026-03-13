@@ -5,6 +5,7 @@ import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { DailyReviewProvider } from "@/components/providers/daily-review-provider";
 import { FocusSessionsProvider } from "@/components/providers/focus-sessions-provider";
 import { MonthlyMissionProvider } from "@/components/providers/monthly-mission-provider";
+import { SetupGuideProvider } from "@/components/providers/setup-guide-provider";
 import { TodayPlanProvider } from "@/components/providers/today-plan-provider";
 import { WeeklyReviewProvider } from "@/components/providers/weekly-review-provider";
 
@@ -16,7 +17,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <WeeklyReviewProvider>
             <MonthlyMissionProvider>
               <AnalyticsProvider>
-                <AppShell>{children}</AppShell>
+                <SetupGuideProvider>
+                  <AppShell>{children}</AppShell>
+                </SetupGuideProvider>
               </AnalyticsProvider>
             </MonthlyMissionProvider>
           </WeeklyReviewProvider>

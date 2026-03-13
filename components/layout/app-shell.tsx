@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
+import { SetupGuideBanner } from "@/components/guide/setup-guide-banner";
 import { Logo } from "@/components/logo";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
@@ -144,6 +145,9 @@ export function AppShell({ children }: PropsWithChildren) {
               </p>
             </div>
           </header>
+          <div className="px-5 pt-6 sm:px-8">
+            <SetupGuideBanner />
+          </div>
           <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8">{children}</main>
         </div>
       </div>

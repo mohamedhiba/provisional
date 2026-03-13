@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
+import { useSetupGuide } from "@/components/providers/setup-guide-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 
 export function StartHerePanel() {
@@ -12,6 +13,8 @@ export function StartHerePanel() {
   const { dailyPlan } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
+  const { hasLoaded: guideLoaded, isVisible: guideVisible, isComplete: guideComplete } =
+    useSetupGuide();
 
   const isEmpty =
     !mission?.focusTheme.trim() &&
@@ -19,7 +22,7 @@ export function StartHerePanel() {
     sessions.length === 0 &&
     !review;
 
-  if (!isEmpty) {
+  if (!isEmpty || (guideLoaded && guideVisible && !guideComplete)) {
     return null;
   }
 
@@ -65,4 +68,3 @@ export function StartHerePanel() {
     </section>
   );
 }
-
