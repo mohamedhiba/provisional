@@ -9,11 +9,16 @@ import { useMonthlyMission } from "@/components/providers/monthly-mission-provid
 import { InfoCallout } from "@/components/ui/info-callout";
 import { Button } from "@/components/ui/button";
 import {
+  clearLocalMonthlyMissionDraft,
   computeMonthlyMissionProgress,
   createEmptyMonthlyMission,
   createMonthlyMissionTarget,
   formatMonthLabel,
+  isMonthlyMissionEmpty,
+  normalizeMonthlyMissionState,
+  readLocalMonthlyMissionDraft,
   validateMonthlyMission,
+  writeLocalMonthlyMissionDraft,
   type MonthlyMissionState,
 } from "@/lib/monthly-mission";
 
@@ -28,16 +33,43 @@ export function MonthlyMissionWorkspace() {
   const { mission, hasLoaded, syncMessage, saveMission } = useMonthlyMission();
   const [form, setForm] = useState<MonthlyMissionState>(createEmptyMonthlyMission(monthStart));
   const [formError, setFormError] = useState("");
+  const [hasHydratedForm, setHasHydratedForm] = useState(false);
   const progress = computeMonthlyMissionProgress(form);
 
   useEffect(() => {
     if (mission) {
       setForm(mission);
+      setHasHydratedForm(true);
       return;
     }
 
-    setForm(createEmptyMonthlyMission(monthStart));
+    const draft = readLocalMonthlyMissionDraft(monthStart);
+    setForm(draft ?? createEmptyMonthlyMission(monthStart));
+    setHasHydratedForm(true);
   }, [mission, monthStart]);
+
+  useEffect(() => {
+    if (!hasHydratedForm) {
+      return;
+    }
+
+    const normalizedForm = normalizeMonthlyMissionState(form, monthStart);
+    const normalizedMission = mission
+      ? normalizeMonthlyMissionState(mission, monthStart)
+      : null;
+
+    if (normalizedMission && JSON.stringify(normalizedMission) === JSON.stringify(normalizedForm)) {
+      clearLocalMonthlyMissionDraft(monthStart);
+      return;
+    }
+
+    if (isMonthlyMissionEmpty(normalizedForm)) {
+      clearLocalMonthlyMissionDraft(monthStart);
+      return;
+    }
+
+    writeLocalMonthlyMissionDraft(normalizedForm);
+  }, [form, hasHydratedForm, mission, monthStart]);
 
   function setField<K extends keyof MonthlyMissionState>(
     key: K,
@@ -95,6 +127,7 @@ export function MonthlyMissionWorkspace() {
 
     setFormError("");
     await saveMission(form);
+    clearLocalMonthlyMissionDraft(form.monthStart);
   }
 
   return (

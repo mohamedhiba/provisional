@@ -46,6 +46,7 @@ export type WeeklyReviewSummary = {
 };
 
 export const weeklyReviewStorageKeyPrefix = "proof-weekly-review";
+export const weeklyReviewDraftStorageKeyPrefix = "proof-weekly-review-draft";
 
 function toIsoDate(date: Date) {
   const year = date.getFullYear();
@@ -159,6 +160,10 @@ export function getWeeklyReviewStorageKey(weekStart: string) {
   return `${weeklyReviewStorageKeyPrefix}:${weekStart}`;
 }
 
+export function getWeeklyReviewDraftStorageKey(weekStart: string) {
+  return `${weeklyReviewDraftStorageKeyPrefix}:${weekStart}`;
+}
+
 export function readLocalWeeklyReviewState(weekStart: string) {
   if (typeof window === "undefined") {
     return null;
@@ -181,6 +186,28 @@ export function readLocalWeeklyReviewState(weekStart: string) {
   }
 }
 
+export function readLocalWeeklyReviewDraft(weekStart: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(getWeeklyReviewDraftStorageKey(weekStart));
+
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return normalizeWeeklyReviewState(
+      JSON.parse(saved) as Partial<WeeklyReviewState>,
+      weekStart,
+    );
+  } catch {
+    window.localStorage.removeItem(getWeeklyReviewDraftStorageKey(weekStart));
+    return null;
+  }
+}
+
 export function writeLocalWeeklyReviewState(state: WeeklyReviewState) {
   if (typeof window === "undefined") {
     return;
@@ -189,6 +216,35 @@ export function writeLocalWeeklyReviewState(state: WeeklyReviewState) {
   window.localStorage.setItem(
     getWeeklyReviewStorageKey(state.weekStart),
     JSON.stringify(state),
+  );
+}
+
+export function writeLocalWeeklyReviewDraft(state: WeeklyReviewState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getWeeklyReviewDraftStorageKey(state.weekStart),
+    JSON.stringify(state),
+  );
+}
+
+export function clearLocalWeeklyReviewDraft(weekStart: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getWeeklyReviewDraftStorageKey(weekStart));
+}
+
+export function isWeeklyReviewEmpty(state: WeeklyReviewState) {
+  return !(
+    state.movedForwardText.trim() ||
+    state.wastedEffortText.trim() ||
+    state.improveText.trim() ||
+    state.eliminateText.trim() ||
+    state.nextWeekFocus.trim()
   );
 }
 

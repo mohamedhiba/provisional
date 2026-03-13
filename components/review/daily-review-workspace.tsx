@@ -10,8 +10,13 @@ import { Button } from "@/components/ui/button";
 import { InfoCallout } from "@/components/ui/info-callout";
 import { formatPlanDate } from "@/lib/daily-plan";
 import {
+  clearLocalDailyReviewDraft,
   createEmptyDailyReview,
+  isDailyReviewEmpty,
+  normalizeDailyReviewState,
+  readLocalDailyReviewDraft,
   validateDailyReview,
+  writeLocalDailyReviewDraft,
   type DailyReviewState,
 } from "@/lib/daily-review";
 import {
@@ -63,15 +68,42 @@ export function DailyReviewWorkspace() {
   const { review, hasLoaded, syncMessage, submitReview } = useDailyReview();
   const [form, setForm] = useState<DailyReviewState>(createEmptyDailyReview(today));
   const [formError, setFormError] = useState("");
+  const [hasHydratedForm, setHasHydratedForm] = useState(false);
 
   useEffect(() => {
     if (review) {
       setForm(review);
+      setHasHydratedForm(true);
       return;
     }
 
-    setForm(createEmptyDailyReview(today));
+    const draft = readLocalDailyReviewDraft(today);
+    setForm(draft ?? createEmptyDailyReview(today));
+    setHasHydratedForm(true);
   }, [review, today]);
+
+  useEffect(() => {
+    if (!hasHydratedForm) {
+      return;
+    }
+
+    const normalizedForm = normalizeDailyReviewState(form, today);
+    const normalizedReview = review
+      ? normalizeDailyReviewState(review, today)
+      : null;
+
+    if (normalizedReview && JSON.stringify(normalizedReview) === JSON.stringify(normalizedForm)) {
+      clearLocalDailyReviewDraft(today);
+      return;
+    }
+
+    if (isDailyReviewEmpty(normalizedForm)) {
+      clearLocalDailyReviewDraft(today);
+      return;
+    }
+
+    writeLocalDailyReviewDraft(normalizedForm);
+  }, [form, hasHydratedForm, review, today]);
 
   const draftScore = computeDailyScore({
     dailyPlan,
@@ -104,6 +136,7 @@ export function DailyReviewWorkspace() {
 
     setFormError("");
     await submitReview(form);
+    clearLocalDailyReviewDraft(form.reviewDate);
   }
 
   return (

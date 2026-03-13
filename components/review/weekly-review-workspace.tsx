@@ -10,9 +10,14 @@ import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 import {
+  clearLocalWeeklyReviewDraft,
   createEmptyWeeklyReview,
   formatWeeklyRange,
+  isWeeklyReviewEmpty,
+  normalizeWeeklyReviewState,
+  readLocalWeeklyReviewDraft,
   validateWeeklyReview,
+  writeLocalWeeklyReviewDraft,
   type WeeklyReviewState,
 } from "@/lib/weekly-review";
 
@@ -56,16 +61,43 @@ export function WeeklyReviewWorkspace() {
     createEmptyWeeklyReview(weekStart),
   );
   const [formError, setFormError] = useState("");
+  const [hasHydratedForm, setHasHydratedForm] = useState(false);
   const missionProgress = computeMonthlyMissionProgress(mission);
 
   useEffect(() => {
     if (review) {
       setForm(review);
+      setHasHydratedForm(true);
       return;
     }
 
-    setForm(createEmptyWeeklyReview(weekStart));
+    const draft = readLocalWeeklyReviewDraft(weekStart);
+    setForm(draft ?? createEmptyWeeklyReview(weekStart));
+    setHasHydratedForm(true);
   }, [review, weekStart]);
+
+  useEffect(() => {
+    if (!hasHydratedForm) {
+      return;
+    }
+
+    const normalizedForm = normalizeWeeklyReviewState(form, weekStart);
+    const normalizedReview = review
+      ? normalizeWeeklyReviewState(review, weekStart)
+      : null;
+
+    if (normalizedReview && JSON.stringify(normalizedReview) === JSON.stringify(normalizedForm)) {
+      clearLocalWeeklyReviewDraft(weekStart);
+      return;
+    }
+
+    if (isWeeklyReviewEmpty(normalizedForm)) {
+      clearLocalWeeklyReviewDraft(weekStart);
+      return;
+    }
+
+    writeLocalWeeklyReviewDraft(normalizedForm);
+  }, [form, hasHydratedForm, review, weekStart]);
 
   function setField<K extends keyof WeeklyReviewState>(
     key: K,
@@ -88,6 +120,7 @@ export function WeeklyReviewWorkspace() {
 
     setFormError("");
     await submitReview(form);
+    clearLocalWeeklyReviewDraft(form.weekStart);
   }
 
   return (

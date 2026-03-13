@@ -11,6 +11,7 @@ export type DailyReviewState = {
 };
 
 export const dailyReviewStorageKeyPrefix = "proof-daily-review";
+export const dailyReviewDraftStorageKeyPrefix = "proof-daily-review-draft";
 
 export function createEmptyDailyReview(reviewDate = getTodayIsoDate()): DailyReviewState {
   return {
@@ -48,6 +49,10 @@ export function getDailyReviewStorageKey(reviewDate: string) {
   return `${dailyReviewStorageKeyPrefix}:${reviewDate}`;
 }
 
+export function getDailyReviewDraftStorageKey(reviewDate: string) {
+  return `${dailyReviewDraftStorageKeyPrefix}:${reviewDate}`;
+}
+
 export function readLocalDailyReviewState(reviewDate: string) {
   if (typeof window === "undefined") {
     return null;
@@ -70,6 +75,28 @@ export function readLocalDailyReviewState(reviewDate: string) {
   }
 }
 
+export function readLocalDailyReviewDraft(reviewDate: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(getDailyReviewDraftStorageKey(reviewDate));
+
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return normalizeDailyReviewState(
+      JSON.parse(saved) as Partial<DailyReviewState>,
+      reviewDate,
+    );
+  } catch {
+    window.localStorage.removeItem(getDailyReviewDraftStorageKey(reviewDate));
+    return null;
+  }
+}
+
 export function writeLocalDailyReviewState(state: DailyReviewState) {
   if (typeof window === "undefined") {
     return;
@@ -87,6 +114,35 @@ export function clearLocalDailyReviewState(reviewDate: string) {
   }
 
   window.localStorage.removeItem(getDailyReviewStorageKey(reviewDate));
+}
+
+export function writeLocalDailyReviewDraft(state: DailyReviewState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getDailyReviewDraftStorageKey(state.reviewDate),
+    JSON.stringify(state),
+  );
+}
+
+export function clearLocalDailyReviewDraft(reviewDate: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getDailyReviewDraftStorageKey(reviewDate));
+}
+
+export function isDailyReviewEmpty(state: DailyReviewState) {
+  return !(
+    state.finishedText.trim() ||
+    state.avoidedText.trim() ||
+    state.whyAvoidedText.trim() ||
+    state.wastedTimeText.trim() ||
+    state.tomorrowFirstMove.trim()
+  );
 }
 
 export function validateDailyReview(state: DailyReviewState) {

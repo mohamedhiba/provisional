@@ -20,6 +20,7 @@ export type MonthlyMissionState = {
 };
 
 export const monthlyMissionStorageKeyPrefix = "proof-monthly-mission";
+export const monthlyMissionDraftStorageKeyPrefix = "proof-monthly-mission-draft";
 
 function toIsoDate(date: Date) {
   const year = date.getFullYear();
@@ -109,6 +110,10 @@ export function getMonthlyMissionStorageKey(monthStart: string) {
   return `${monthlyMissionStorageKeyPrefix}:${monthStart}`;
 }
 
+export function getMonthlyMissionDraftStorageKey(monthStart: string) {
+  return `${monthlyMissionDraftStorageKeyPrefix}:${monthStart}`;
+}
+
 export function readLocalMonthlyMissionState(monthStart: string) {
   if (typeof window === "undefined") {
     return null;
@@ -131,6 +136,28 @@ export function readLocalMonthlyMissionState(monthStart: string) {
   }
 }
 
+export function readLocalMonthlyMissionDraft(monthStart: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(getMonthlyMissionDraftStorageKey(monthStart));
+
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return normalizeMonthlyMissionState(
+      JSON.parse(saved) as Partial<MonthlyMissionState>,
+      monthStart,
+    );
+  } catch {
+    window.localStorage.removeItem(getMonthlyMissionDraftStorageKey(monthStart));
+    return null;
+  }
+}
+
 export function writeLocalMonthlyMissionState(state: MonthlyMissionState) {
   if (typeof window === "undefined") {
     return;
@@ -139,6 +166,45 @@ export function writeLocalMonthlyMissionState(state: MonthlyMissionState) {
   window.localStorage.setItem(
     getMonthlyMissionStorageKey(state.monthStart),
     JSON.stringify(state),
+  );
+}
+
+export function writeLocalMonthlyMissionDraft(state: MonthlyMissionState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getMonthlyMissionDraftStorageKey(state.monthStart),
+    JSON.stringify(state),
+  );
+}
+
+export function clearLocalMonthlyMissionDraft(monthStart: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(getMonthlyMissionDraftStorageKey(monthStart));
+}
+
+export function isMonthlyMissionEmpty(state: MonthlyMissionState) {
+  const hasTargetContent = state.targets.some(
+    (target) =>
+      target.label.trim() ||
+      target.currentNumber.trim() !== "0" ||
+      target.targetNumber.trim() ||
+      target.unit.trim(),
+  );
+
+  return !(
+    state.focusTheme.trim() ||
+    state.primaryMission.trim() ||
+    state.whyThisMatters.trim() ||
+    state.mustProtect.trim() ||
+    state.mustIgnore.trim() ||
+    state.currentWeekFocus.trim() ||
+    hasTargetContent
   );
 }
 
@@ -206,4 +272,3 @@ export function computeMonthlyMissionProgress(state: MonthlyMissionState | null)
     progressPercent,
   };
 }
-
