@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
+import { buttonStyles } from "@/components/ui/button";
 export function IdentitySnapshot() {
   const { onboarding: data, hasLoaded, syncMessage, syncSource } = useOnboardingProfile();
 
@@ -35,7 +36,7 @@ export function IdentitySnapshot() {
         </p>
         <Link
           href="/onboarding"
-          className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-5 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
+          className={`mt-5 ${buttonStyles({ variant: "secondary", size: "md" })}`}
         >
           Finish onboarding
         </Link>

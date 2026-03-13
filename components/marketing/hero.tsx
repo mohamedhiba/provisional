@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
+import { buttonStyles } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site";
 
 export function Hero() {
@@ -52,13 +53,13 @@ export function Hero() {
           <div className="flex flex-col gap-4 sm:flex-row">
             <Link
               href="/onboarding"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-[#f0d6a4]/25 bg-[linear-gradient(135deg,#f6efe2,#d8b070)] px-6 text-sm font-semibold text-stone-950 shadow-[0_16px_40px_rgba(215,168,91,0.2)] transition hover:brightness-[1.03]"
+              className={buttonStyles({ variant: "primary", size: "lg" })}
             >
               Start setup
             </Link>
             <Link
               href="/today"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-6 text-sm font-semibold text-stone-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:bg-white/[0.1]"
+              className={buttonStyles({ variant: "secondary", size: "lg" })}
             >
               Explore app shell
             </Link>

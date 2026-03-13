@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { useMonthlyMission } from "@/components/providers/monthly-mission-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 import {
   createEmptyWeeklyReview,
@@ -154,7 +154,7 @@ export function WeeklyReviewWorkspace() {
           </div>
           <Link
             href="/mission"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-5 text-sm font-medium text-stone-100 transition hover:bg-white/[0.1]"
+            className={buttonStyles({ variant: "secondary", size: "md" })}
           >
             Open mission
           </Link>

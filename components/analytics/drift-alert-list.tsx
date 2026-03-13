@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { buttonStyles } from "@/components/ui/button";
 import type { AnalyticsDriftAlert } from "@/lib/analytics";
 
 function alertClassName(level: AnalyticsDriftAlert["level"]) {
@@ -63,7 +64,7 @@ export function DriftAlertList({ alerts }: { alerts: AnalyticsDriftAlert[] }) {
             </div>
             <Link
               href={alert.href}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 px-4 text-sm font-medium text-stone-100 transition hover:bg-white/[0.08]"
+              className={buttonStyles({ variant: "secondary", size: "sm" })}
             >
               Open
             </Link>

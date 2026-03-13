@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { buttonStyles } from "@/components/ui/button";
+
 export default function NotFoundPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-16">
@@ -14,7 +16,7 @@ export default function NotFoundPage() {
         <div className="mt-8 flex justify-center">
           <Link
             href="/today"
-            className="inline-flex h-12 items-center justify-center rounded-full bg-stone-100 px-6 text-sm font-medium text-stone-950 transition hover:bg-stone-200"
+            className={buttonStyles({ variant: "primary", size: "lg" })}
           >
             Back to today
           </Link>

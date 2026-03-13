@@ -6,6 +6,7 @@ import { useMonthlyMission } from "@/components/providers/monthly-mission-provid
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
+import { buttonStyles } from "@/components/ui/button";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 
 export function VisionBridge() {
@@ -36,7 +37,7 @@ export function VisionBridge() {
           </div>
           <Link
             href="/mission"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-stone-100 px-5 text-sm font-medium text-stone-950 transition hover:bg-stone-200"
+            className={buttonStyles({ variant: "primary", size: "md" })}
           >
             Set monthly mission
           </Link>
@@ -99,4 +100,3 @@ export function VisionBridge() {
     </section>
   );
 }
-

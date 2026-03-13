@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { buttonStyles } from "@/components/ui/button";
+
 type InfoCalloutProps = {
   eyebrow: string;
   title: string;
@@ -25,7 +27,7 @@ export function InfoCallout({
       {actionHref && actionLabel ? (
         <Link
           href={actionHref}
-          className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-5 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
+          className={`mt-5 ${buttonStyles({ variant: "secondary", size: "md" })}`}
         >
           {actionLabel}
         </Link>
@@ -33,4 +35,3 @@ export function InfoCallout({
     </section>
   );
 }
-

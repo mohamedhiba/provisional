@@ -13,7 +13,7 @@ import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import {
   formatPlanDate,
   getAntiDriftMessage,
@@ -288,7 +288,7 @@ export function TodayCommandCenter() {
               </div>
               <Link
                 href={topDriftAlert?.href ?? "/review/daily"}
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-amber-200/20 bg-amber-300/10 px-5 text-sm font-medium text-amber-50 transition hover:bg-amber-300/15"
+                className={buttonStyles({ variant: "warning", size: "md" })}
               >
                 {topDriftAlert ? "Resolve signal" : review ? "Open review" : "Close the day"}
               </Link>
@@ -307,7 +307,7 @@ export function TodayCommandCenter() {
               </div>
               <Link
                 href="/sessions"
-                className="inline-flex h-11 items-center justify-center rounded-full bg-stone-100 px-5 text-sm font-medium text-stone-950 transition hover:bg-stone-200"
+                className={buttonStyles({ variant: "primary", size: "md" })}
               >
                 Open logger
               </Link>

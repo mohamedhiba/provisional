@@ -7,6 +7,7 @@ import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useSetupGuide } from "@/components/providers/setup-guide-provider";
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
+import { buttonStyles } from "@/components/ui/button";
 
 export function StartHerePanel() {
   const { mission } = useMonthlyMission();
@@ -43,7 +44,7 @@ export function StartHerePanel() {
         </div>
         <Link
           href="/mission"
-          className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-5 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
+          className={buttonStyles({ variant: "secondary", size: "md" })}
         >
           Open setup loop
         </Link>

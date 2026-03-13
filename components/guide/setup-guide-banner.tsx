@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useSetupGuide } from "@/components/providers/setup-guide-provider";
+import { buttonStyles } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function matchesRoute(pathname: string, href: string) {
@@ -38,7 +39,7 @@ export function SetupGuideBanner() {
         <button
           type="button"
           onClick={showGuide}
-          className="inline-flex h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-4 text-sm font-semibold text-stone-100 transition hover:bg-white/[0.1]"
+          className={buttonStyles({ variant: "secondary", size: "sm" })}
         >
           Open guide
         </button>
@@ -80,14 +81,17 @@ export function SetupGuideBanner() {
         <div className="flex items-center gap-3">
           <Link
             href={currentStep.href}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-[#f0d6a4]/25 bg-[linear-gradient(135deg,#f6efe2,#d8b070)] px-5 text-sm font-semibold text-stone-950 shadow-[0_16px_40px_rgba(215,168,91,0.2)] transition hover:brightness-[1.03]"
+            className={buttonStyles({ variant: "primary", size: "md" })}
           >
             {onCurrentPage ? "Finish this step" : currentStep.actionLabel}
           </Link>
           <button
             type="button"
             onClick={hideGuide}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-stone-300 transition hover:bg-white/[0.1] hover:text-stone-100"
+            className={cn(
+              buttonStyles({ variant: "ghost", size: "md" }),
+              "w-11 px-0",
+            )}
             aria-label="Hide setup guide"
           >
             <X className="h-4 w-4" />

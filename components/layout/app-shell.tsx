@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
+import { AccountPanel } from "@/components/auth/account-panel";
 import { SetupGuideBanner } from "@/components/guide/setup-guide-banner";
 import { Logo } from "@/components/logo";
 import { useAnalytics } from "@/components/providers/analytics-provider";
@@ -98,13 +99,16 @@ export function AppShell({ children }: PropsWithChildren) {
               })}
             </div>
 
-            <div className="surface-panel-soft mt-auto rounded-[1.75rem] p-4">
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                Operating rule
-              </p>
-              <p className="mt-3 text-sm leading-6 text-stone-300">
-                Daily proof beats motivational fiction. One thing first.
-              </p>
+            <div className="mt-auto space-y-4">
+              <AccountPanel />
+              <div className="surface-panel-soft rounded-[1.75rem] p-4">
+                <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
+                  Operating rule
+                </p>
+                <p className="mt-3 text-sm leading-6 text-stone-300">
+                  Daily proof beats motivational fiction. One thing first.
+                </p>
+              </div>
             </div>
           </div>
         </aside>
