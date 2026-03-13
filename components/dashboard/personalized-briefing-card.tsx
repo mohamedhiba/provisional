@@ -14,15 +14,21 @@ import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import { buttonStyles } from "@/components/ui/button";
 import {
   getBriefingWindow,
-  hashBriefingSignature,
+  shiftIsoDate,
   type PersonalizedBriefing,
 } from "@/lib/briefing";
 import { computeMonthlyMissionProgress } from "@/lib/monthly-mission";
 
-const briefingStorageKeyPrefix = "proof-coach-cache-v3";
+const briefingStorageKeyPrefix = "proof-coach-cache-v4";
+const briefingQuotaLockStorageKey = "proof-coach-lock-v1";
 
 type ApiPayload = {
   briefing: PersonalizedBriefing;
+};
+
+type BriefingQuotaLock = {
+  lockedUntilDate: string;
+  reason: string;
 };
 
 function readCachedBriefing(storageKey: string) {
@@ -52,12 +58,55 @@ function writeCachedBriefing(storageKey: string, briefing: PersonalizedBriefing)
   window.localStorage.setItem(storageKey, JSON.stringify(briefing));
 }
 
+function readQuotaLock() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(briefingQuotaLockStorageKey);
+
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(saved) as BriefingQuotaLock;
+  } catch {
+    window.localStorage.removeItem(briefingQuotaLockStorageKey);
+    return null;
+  }
+}
+
+function writeQuotaLock(lock: BriefingQuotaLock) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(briefingQuotaLockStorageKey, JSON.stringify(lock));
+}
+
+function clearQuotaLock() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(briefingQuotaLockStorageKey);
+}
+
+function isQuotaLockActive(lock: BriefingQuotaLock | null, today: string) {
+  if (!lock) {
+    return false;
+  }
+
+  return today < lock.lockedUntilDate;
+}
+
 export function PersonalizedBriefingCard() {
   const { today, weekStart, monthStart } = useCurrentDate();
-  const { onboarding, hasLoaded: onboardingLoaded } = useOnboardingProfile();
-  const { dailyPlan, hasLoaded: todayLoaded } = useTodayPlan();
-  const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
-  const { review, hasLoaded: reviewLoaded } = useDailyReview();
+  const { hasLoaded: onboardingLoaded } = useOnboardingProfile();
+  const { hasLoaded: todayLoaded } = useTodayPlan();
+  const { hasLoaded: sessionsLoaded } = useFocusSessions();
+  const { hasLoaded: reviewLoaded } = useDailyReview();
   const { summary, hasLoaded: weeklyLoaded } = useWeeklyReview();
   const { mission, hasLoaded: missionLoaded } = useMonthlyMission();
   const { snapshot, hasLoaded: analyticsLoaded } = useAnalytics();
@@ -65,6 +114,7 @@ export function PersonalizedBriefingCard() {
   const [briefing, setBriefing] = useState<PersonalizedBriefing | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [quotaLock, setQuotaLock] = useState<BriefingQuotaLock | null>(null);
 
   const missionProgress = computeMonthlyMissionProgress(mission);
   const allLoaded =
@@ -90,44 +140,68 @@ export function PersonalizedBriefingCard() {
     setWindowInfo(getBriefingWindow(new Date()));
   }, [monthStart, today, weekStart]);
 
-  const storageKey = useMemo(() => {
-    const signature = hashBriefingSignature(
-      JSON.stringify({
-        moment: windowInfo.id,
-        oneThing: dailyPlan.oneThing,
-        oneThingDone: dailyPlan.oneThingDone,
-        completedOutcomes: dailyPlan.topThree.filter((item) => item.done).length,
-        sessions: sessions.length,
-        deepMinutesToday:
-          snapshot.activityGrid.find((day) => day.date === windowInfo.date)?.deepMinutes ?? 0,
-        reviewDate: review?.reviewDate ?? "",
-        weekScore: summary.totalScore,
-        winningDays: summary.winningDays,
-        monthTheme: mission?.focusTheme ?? "",
-        monthProgress: missionProgress.progressPercent,
-        streak: snapshot.currentStreak,
-        tone: onboarding.tone,
-      }),
-    );
+  const storageKey = useMemo(
+    () => `${briefingStorageKeyPrefix}:${windowInfo.cacheBucket}`,
+    [windowInfo.cacheBucket],
+  );
 
-    return `${briefingStorageKeyPrefix}:${windowInfo.cacheBucket}:${signature}`;
+  const liveEvidence = useMemo(() => {
+    const todayActivity =
+      snapshot.activityGrid.find((day) => day.date === windowInfo.date) ?? null;
+    const yesterdayActivity =
+      snapshot.activityGrid.find((day) => day.date === shiftIsoDate(windowInfo.date, -1)) ?? null;
+
+    return [
+      {
+        label: "Yesterday",
+        value: `${yesterdayActivity?.score ?? 0} score${
+          yesterdayActivity?.reviewCompleted ? " with closeout" : " and no closeout"
+        }`,
+      },
+      {
+        label: "Today",
+        value: `${todayActivity?.deepMinutes ?? 0} deep minutes and ${
+          todayActivity?.sessionCount ?? 0
+        } logged session${(todayActivity?.sessionCount ?? 0) === 1 ? "" : "s"}`,
+      },
+      {
+        label: "This week",
+        value: `${summary.winningDays} winning day${
+          summary.winningDays === 1 ? "" : "s"
+        } and ${Math.round(summary.topTaskCompletionRate)}% top-task execution`,
+      },
+      {
+        label: "This month",
+        value: `${missionProgress.progressPercent}% mission progress with ${Math.max(
+          0,
+          missionProgress.activeTargets,
+        )} active target${missionProgress.activeTargets === 1 ? "" : "s"}`,
+      },
+    ];
   }, [
-    dailyPlan.oneThing,
-    dailyPlan.oneThingDone,
-    dailyPlan.topThree,
-    mission?.focusTheme,
+    missionProgress.activeTargets,
     missionProgress.progressPercent,
-    onboarding.tone,
-    review?.reviewDate,
-    sessions.length,
     snapshot.activityGrid,
-    snapshot.currentStreak,
-    summary.totalScore,
+    summary.topTaskCompletionRate,
     summary.winningDays,
-    windowInfo.cacheBucket,
     windowInfo.date,
-    windowInfo.id,
   ]);
+
+  const hasLockedWindowBriefing =
+    briefing?.source === "gemini" && briefing.cacheKey === windowInfo.cacheBucket;
+  const quotaLockActive = isQuotaLockActive(quotaLock, today);
+
+  useEffect(() => {
+    const nextLock = readQuotaLock();
+
+    if (!isQuotaLockActive(nextLock, today)) {
+      clearQuotaLock();
+      setQuotaLock(null);
+      return;
+    }
+
+    setQuotaLock(nextLock);
+  }, [today]);
 
   useEffect(() => {
     if (!allLoaded) {
@@ -154,6 +228,9 @@ export function PersonalizedBriefingCard() {
           weekStart: windowInfo.weekStart,
           monthStart: windowInfo.monthStart,
         });
+        if (quotaLockActive) {
+          params.set("skipAi", "1");
+        }
         const response = await fetch(`/api/briefing?${params.toString()}`, {
           cache: "no-store",
         });
@@ -170,6 +247,22 @@ export function PersonalizedBriefingCard() {
 
         setBriefing(payload.briefing);
         writeCachedBriefing(storageKey, payload.briefing);
+        if (
+          payload.briefing.diagnostic?.provider === "gemini" &&
+          payload.briefing.diagnostic?.code === 429
+        ) {
+          const nextLock = {
+            lockedUntilDate: shiftIsoDate(today, 1),
+            reason:
+              payload.briefing.diagnostic.reason ||
+              "Gemini hit a rate limit, so Proof is pausing AI until tomorrow to protect quota.",
+          };
+          writeQuotaLock(nextLock);
+          setQuotaLock(nextLock);
+        } else if (!quotaLockActive) {
+          clearQuotaLock();
+          setQuotaLock(null);
+        }
         setStatus("ready");
         setRefreshNonce(0);
       } catch {
@@ -191,6 +284,8 @@ export function PersonalizedBriefingCard() {
     allLoaded,
     refreshNonce,
     storageKey,
+    today,
+    quotaLockActive,
     windowInfo.date,
     windowInfo.id,
     windowInfo.monthStart,
@@ -240,15 +335,23 @@ export function PersonalizedBriefingCard() {
         <button
           type="button"
           onClick={() => {
+            if (quotaLockActive || hasLockedWindowBriefing) {
+              return;
+            }
             if (typeof window !== "undefined") {
               window.localStorage.removeItem(storageKey);
             }
             setRefreshNonce((current) => current + 1);
           }}
+          disabled={quotaLockActive || hasLockedWindowBriefing}
           className={buttonStyles({ variant: "secondary", size: "sm" })}
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`} />
-          Refresh coach
+          {quotaLockActive
+            ? "Gemini paused until tomorrow"
+            : hasLockedWindowBriefing
+              ? "Locked for this window"
+              : "Refresh coach"}
         </button>
       </div>
 
@@ -342,7 +445,7 @@ export function PersonalizedBriefingCard() {
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {(briefing?.evidence ?? [
+            {(liveEvidence ?? [
               { label: "Yesterday", value: "Loading yesterday's result..." },
               { label: "Today", value: "Loading today’s activity..." },
               { label: "This week", value: "Loading weekly execution..." },
@@ -365,13 +468,20 @@ export function PersonalizedBriefingCard() {
               Coach status
             </p>
             <p className="mt-2 text-sm leading-7 text-stone-300">
-              {briefing?.source === "gemini"
-                ? "Gemini is active and generating a personalized coach message from your current evidence."
-                : briefing?.diagnostic
-                  ? `Gemini is configured, but Google returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
-                  : "Gemini is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
+              {quotaLockActive
+                ? `Gemini is paused until ${quotaLock?.lockedUntilDate}. Proof is reusing cached coaching and the local engine so you do not waste free-tier quota.`
+                : briefing?.source === "gemini"
+                  ? "Gemini has already generated this window's coach note. Proof will reuse it until the next briefing window opens."
+                  : briefing?.diagnostic
+                    ? `Gemini is configured, but Google returned ${briefing.diagnostic.code ?? "an error"}${briefing.diagnostic.status ? ` (${briefing.diagnostic.status})` : ""}. Proof is using the local coach engine so the page still works.`
+                    : "Gemini is not responding yet, so Proof is using the local coach engine to keep the pressure on."}
             </p>
-            {briefing?.diagnostic ? (
+            {quotaLockActive && quotaLock?.reason ? (
+              <p className="mt-3 text-xs leading-6 text-stone-400">
+                {quotaLock.reason}
+              </p>
+            ) : null}
+            {briefing?.diagnostic && !quotaLockActive ? (
               <p className="mt-3 text-xs leading-6 text-stone-400">
                 {briefing.diagnostic.reason}
               </p>
@@ -384,6 +494,8 @@ export function PersonalizedBriefingCard() {
         <span>
           Built from today&apos;s plan, yesterday&apos;s closeout, weekly evidence, and monthly progress.
         </span>
+        {hasLockedWindowBriefing ? <span>Coach note is locked for this window to protect quota.</span> : null}
+        {quotaLockActive ? <span>Gemini is paused until the next day because Google rate-limited the free tier.</span> : null}
         {status === "loading" ? <span>Refreshing the coach...</span> : null}
         {status === "error" ? <span>Coach refresh failed. The last stable version will stay visible.</span> : null}
       </div>

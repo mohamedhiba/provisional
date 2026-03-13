@@ -507,9 +507,22 @@ async function buildBriefingContext(
 export async function createPersonalizedBriefing(
   identity: PersistenceIdentity,
   window: BriefingWindow,
+  options?: {
+    skipAi?: boolean;
+    skipAiReason?: string;
+  },
 ): Promise<PersonalizedBriefing> {
   const cacheKey = window.cacheBucket;
   const context = await buildBriefingContext(identity, window);
+
+  if (options?.skipAi) {
+    return buildFallbackBriefing(context, cacheKey, {
+      reason:
+        options.skipAiReason ??
+        "Gemini is paused temporarily, so Proof is using the local coach engine.",
+      retryable: true,
+    });
+  }
 
   if (!env.hasGoogleAiEnv) {
     return buildFallbackBriefing(context, cacheKey, {

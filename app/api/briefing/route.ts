@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get("date");
   const weekStart = searchParams.get("weekStart");
   const monthStart = searchParams.get("monthStart");
+  const skipAi = searchParams.get("skipAi") === "1";
 
   const fallbackWindow = getBriefingWindow();
   const hasExplicitWindow =
@@ -65,6 +66,12 @@ export async function GET(request: NextRequest) {
       deviceId: identity.deviceId,
     },
     normalizedWindow,
+    skipAi
+      ? {
+          skipAi: true,
+          skipAiReason: "Gemini is paused locally to avoid wasting free-tier quota after a recent rate-limit hit.",
+        }
+      : undefined,
   );
 
   return withDeviceCookie(
