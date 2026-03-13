@@ -16,6 +16,7 @@ export type ResolvedPersistenceIdentity = {
 export async function resolvePersistenceIdentity() {
   const cookieStore = await cookies();
   const existingDeviceId = cookieStore.get(onboardingDeviceCookieKey)?.value ?? null;
+  const resolvedDeviceId = existingDeviceId ?? crypto.randomUUID();
 
   if (env.hasSupabaseClientEnv) {
     try {
@@ -27,8 +28,8 @@ export async function resolvePersistenceIdentity() {
       if (user) {
         return {
           authUserId: user.id,
-          deviceId: null,
-          needsDeviceCookie: false,
+          deviceId: resolvedDeviceId,
+          needsDeviceCookie: !existingDeviceId,
         } satisfies ResolvedPersistenceIdentity;
       }
     } catch {
@@ -38,7 +39,7 @@ export async function resolvePersistenceIdentity() {
 
   return {
     authUserId: null,
-    deviceId: existingDeviceId ?? crypto.randomUUID(),
+    deviceId: resolvedDeviceId,
     needsDeviceCookie: !existingDeviceId,
   } satisfies ResolvedPersistenceIdentity;
 }

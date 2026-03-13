@@ -68,12 +68,33 @@ Stage 4.5 has started:
 
 For remote persistence in the current build you need:
 
+- `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 When new files appear in `supabase/migrations/`, run `supabase db push` again so your
 remote schema stays in sync with the app code.
+
+## Auth setup
+
+Magic-link auth uses a canonical app URL so deployed emails do not bounce back to
+localhost.
+
+Required environment variables:
+
+- `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development
+- `NEXT_PUBLIC_APP_URL=https://provisional-beta.vercel.app` in Vercel production
+
+Required Supabase Auth settings:
+
+- Site URL: `https://provisional-beta.vercel.app`
+- Redirect URLs:
+  - `http://localhost:3000/auth/callback`
+  - `https://provisional-beta.vercel.app/auth/callback`
+
+After changing auth settings in Supabase or env vars in Vercel, redeploy the site so
+new magic-link emails use the correct callback origin.
 
 ## Working product promise
 

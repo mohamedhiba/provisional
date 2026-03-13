@@ -272,6 +272,22 @@ async function findStoredProfileByDeviceId(deviceId: string) {
   return (data as StoredProfileRow | null) ?? null;
 }
 
+async function resolveStoredProfileByIdentity(identity: PersistenceIdentity) {
+  if (identity.authUserId) {
+    const authProfile = await findStoredProfileByAuthUserId(identity.authUserId);
+
+    if (authProfile) {
+      return authProfile;
+    }
+  }
+
+  if (identity.deviceId) {
+    return findStoredProfileByDeviceId(identity.deviceId);
+  }
+
+  return null;
+}
+
 async function loadProfileStructure(profileId: string) {
   const supabase = createSupabaseAdminClient();
   const [{ data: pillars, error: pillarsError }, { data: weeklyTargets, error: weeklyTargetsError }] =
@@ -427,25 +443,30 @@ async function moveRowsByUniqueColumn(input: {
   }
 }
 
-async function moveFocusSessions(input: {
-  sourceProfileId: string;
-  targetProfileId: string;
-  sourcePillars: PillarRow[];
-  targetPillars: PillarRow[];
-}) {
+async function loadFocusSessionsByProfile(profileId: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("focus_sessions")
     .select(
       "id, session_date, task_title, planned_minutes, actual_minutes, quality_rating, work_depth, started_at, ended_at, created_at, pillar_id",
     )
-    .eq("profile_id", input.sourceProfileId);
+    .eq("profile_id", profileId);
 
   if (error) {
     throw error;
   }
 
-  const rows = (data ?? []) as FocusSessionTransferRow[];
+  return (data ?? []) as FocusSessionTransferRow[];
+}
+
+async function moveFocusSessions(input: {
+  rows: FocusSessionTransferRow[];
+  targetProfileId: string;
+  sourcePillars: PillarRow[];
+  targetPillars: PillarRow[];
+}) {
+  const supabase = createSupabaseAdminClient();
+  const rows = input.rows;
 
   if (rows.length === 0) {
     return;
@@ -485,39 +506,41 @@ async function moveFocusSessions(input: {
   }
 }
 
-async function mergeDeviceProfileIntoAuthProfile(
-  authProfile: StoredProfileRow,
+async function mergeAuthProfileIntoDeviceProfile(
   deviceProfile: StoredProfileRow,
+  authProfile: StoredProfileRow,
 ) {
   const supabase = createSupabaseAdminClient();
-  const [authStructure, deviceStructure] = await Promise.all([
-    loadProfileStructure(authProfile.id),
+  const [deviceStructure, authStructure, deviceSessions, authSessions] = await Promise.all([
     loadProfileStructure(deviceProfile.id),
+    loadProfileStructure(authProfile.id),
+    loadFocusSessionsByProfile(deviceProfile.id),
+    loadFocusSessionsByProfile(authProfile.id),
   ]);
 
-  const authPillarMap = new Map(authStructure.pillars.map((pillar) => [pillar.id, pillar.name]));
   const devicePillarMap = new Map(deviceStructure.pillars.map((pillar) => [pillar.id, pillar.name]));
+  const authPillarMap = new Map(authStructure.pillars.map((pillar) => [pillar.id, pillar.name]));
 
   const mergedOnboardingState = normalizeOnboardingState({
-    name: selectPreferredName(authProfile.name, deviceProfile.name),
-    mission: selectPreferredText(authProfile.mission, deviceProfile.mission),
+    name: selectPreferredName(deviceProfile.name, authProfile.name),
+    mission: selectPreferredText(deviceProfile.mission, authProfile.mission),
     longTermGoal: selectPreferredText(
-      authProfile.long_term_goal,
       deviceProfile.long_term_goal,
+      authProfile.long_term_goal,
     ),
     nonNegotiables: selectPreferredText(
-      authProfile.non_negotiables,
       deviceProfile.non_negotiables,
+      authProfile.non_negotiables,
     ),
     defaultFirstMove: selectPreferredText(
-      authProfile.default_first_move,
       deviceProfile.default_first_move,
+      authProfile.default_first_move,
     ),
-    tone: selectPreferredTone(authProfile.tone, deviceProfile.tone),
-    pillars: mergePillarNames(authStructure.pillars, deviceStructure.pillars),
+    tone: selectPreferredTone(deviceProfile.tone, authProfile.tone),
+    pillars: mergePillarNames(deviceStructure.pillars, authStructure.pillars),
     weeklyTargets: mergeWeeklyTargets(
-      mapWeeklyTargets(authStructure.weeklyTargets, authPillarMap),
       mapWeeklyTargets(deviceStructure.weeklyTargets, devicePillarMap),
+      mapWeeklyTargets(authStructure.weeklyTargets, authPillarMap),
     ),
   });
 
@@ -532,15 +555,15 @@ async function mergeDeviceProfileIntoAuthProfile(
       tone: mergedOnboardingState.tone,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", authProfile.id);
+    .eq("id", deviceProfile.id);
 
   if (updateProfileError) {
     throw updateProfileError;
   }
 
-  await replaceProfileStructure(authProfile.id, mergedOnboardingState);
+  await replaceProfileStructure(deviceProfile.id, mergedOnboardingState);
 
-  const mergedTargetStructure = await loadProfileStructure(authProfile.id);
+  const mergedTargetStructure = await loadProfileStructure(deviceProfile.id);
 
   await Promise.all([
     moveRowsByUniqueColumn({
@@ -548,62 +571,67 @@ async function mergeDeviceProfileIntoAuthProfile(
       uniqueColumn: "plan_date",
       selectColumns:
         "id, plan_date, one_thing, one_thing_done, top_three, day_score, status, created_at",
-      sourceProfileId: deviceProfile.id,
-      targetProfileId: authProfile.id,
+      sourceProfileId: authProfile.id,
+      targetProfileId: deviceProfile.id,
     }),
     moveRowsByUniqueColumn({
       table: "daily_reviews",
       uniqueColumn: "review_date",
       selectColumns:
         "id, review_date, finished_text, avoided_text, why_avoided_text, wasted_time_text, tomorrow_first_move, self_rating, created_at",
-      sourceProfileId: deviceProfile.id,
-      targetProfileId: authProfile.id,
+      sourceProfileId: authProfile.id,
+      targetProfileId: deviceProfile.id,
     }),
     moveRowsByUniqueColumn({
       table: "weekly_reviews",
       uniqueColumn: "week_start",
       selectColumns:
         "id, week_start, wins, failures, patterns, next_week_focus, created_at",
-      sourceProfileId: deviceProfile.id,
-      targetProfileId: authProfile.id,
+      sourceProfileId: authProfile.id,
+      targetProfileId: deviceProfile.id,
     }),
     moveRowsByUniqueColumn({
       table: "monthly_missions",
       uniqueColumn: "month_start",
       selectColumns:
         "id, month_start, focus_theme, primary_mission, why_this_matters, must_protect, must_ignore, current_week_focus, targets, created_at",
-      sourceProfileId: deviceProfile.id,
-      targetProfileId: authProfile.id,
+      sourceProfileId: authProfile.id,
+      targetProfileId: deviceProfile.id,
     }),
     moveFocusSessions({
-      sourceProfileId: deviceProfile.id,
-      targetProfileId: authProfile.id,
+      rows: deviceSessions,
+      targetProfileId: deviceProfile.id,
       sourcePillars: deviceStructure.pillars,
+      targetPillars: mergedTargetStructure.pillars,
+    }),
+    moveFocusSessions({
+      rows: authSessions,
+      targetProfileId: deviceProfile.id,
+      sourcePillars: authStructure.pillars,
       targetPillars: mergedTargetStructure.pillars,
     }),
   ]);
 
-  const { error: deleteDeviceProfileError } = await supabase
+  const { error: deleteAuthProfileError } = await supabase
     .from("profiles")
     .delete()
-    .eq("id", deviceProfile.id);
+    .eq("id", authProfile.id);
 
-  if (deleteDeviceProfileError) {
-    throw deleteDeviceProfileError;
+  if (deleteAuthProfileError) {
+    throw deleteAuthProfileError;
   }
 
-  if (!authProfile.device_id && deviceProfile.device_id) {
-    const { error: updateDeviceIdError } = await supabase
-      .from("profiles")
-      .update({
-        device_id: deviceProfile.device_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", authProfile.id);
+  const { error: attachAccountError } = await supabase
+    .from("profiles")
+    .update({
+      auth_user_id: authProfile.auth_user_id,
+      device_id: deviceProfile.device_id ?? authProfile.device_id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", deviceProfile.id);
 
-    if (updateDeviceIdError) {
-      throw updateDeviceIdError;
-    }
+  if (attachAccountError) {
+    throw attachAccountError;
   }
 }
 
@@ -612,10 +640,7 @@ export async function findProfileByIdentity(identity: PersistenceIdentity) {
     return null;
   }
 
-  const storedProfile =
-    identity.authUserId !== null
-      ? await findStoredProfileByAuthUserId(identity.authUserId)
-      : await findStoredProfileByDeviceId(identity.deviceId as string);
+  const storedProfile = await resolveStoredProfileByIdentity(identity);
 
   return toPublicProfile(storedProfile);
 }
@@ -633,8 +658,11 @@ export async function attachAuthenticatedProfile(identity: PersistenceIdentity) 
     : null;
 
   if (authProfile && deviceProfile && authProfile.id !== deviceProfile.id) {
-    await mergeDeviceProfileIntoAuthProfile(authProfile, deviceProfile);
-    return authProfile.id;
+    await mergeAuthProfileIntoDeviceProfile(deviceProfile, authProfile);
+    return {
+      profileId: deviceProfile.id,
+      status: "merge-completed",
+    } as const;
   }
 
   if (!authProfile && deviceProfile) {
@@ -650,11 +678,31 @@ export async function attachAuthenticatedProfile(identity: PersistenceIdentity) 
       throw error;
     }
 
-    return deviceProfile.id;
+    return {
+      profileId: deviceProfile.id,
+      status: "device-linked",
+    } as const;
   }
 
   if (authProfile) {
-    return authProfile.id;
+    if (identity.deviceId && !deviceProfile && !authProfile.device_id) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          device_id: identity.deviceId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", authProfile.id);
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    return {
+      profileId: authProfile.id,
+      status: deviceProfile ? "already-connected" : "account-only",
+    } as const;
   }
 
   const { data, error } = await supabase
@@ -672,7 +720,10 @@ export async function attachAuthenticatedProfile(identity: PersistenceIdentity) 
     throw error;
   }
 
-  return data.id as string;
+  return {
+    profileId: data.id as string,
+    status: "profile-created",
+  } as const;
 }
 
 export async function createOrUpdateProfileFromSeed(
@@ -688,7 +739,7 @@ export async function createOrUpdateProfileFromSeed(
     throw new Error("A device or auth identity is required.");
   }
 
-  const existingProfile = await findProfileByIdentity(identity);
+  const existingProfile = await resolveStoredProfileByIdentity(identity);
 
   if (existingProfile) {
     return existingProfile.id;
@@ -714,12 +765,7 @@ export async function createOrUpdateProfileFromSeed(
 }
 
 export async function loadPersistedOnboardingState(identity: PersistenceIdentity) {
-  const resolvedProfile =
-    identity.authUserId !== null
-      ? await findStoredProfileByAuthUserId(identity.authUserId)
-      : identity.deviceId
-        ? await findStoredProfileByDeviceId(identity.deviceId)
-        : null;
+  const resolvedProfile = await resolveStoredProfileByIdentity(identity);
 
   if (!resolvedProfile) {
     return null;
@@ -757,11 +803,11 @@ export async function savePersistedOnboardingState(
     throw new Error("A device or auth identity is required to persist onboarding.");
   }
 
-  const existingProfile = await findProfileByIdentity(identity);
+  const existingProfile = await resolveStoredProfileByIdentity(identity);
 
   const profilePayload = {
-    auth_user_id: identity.authUserId,
-    device_id: identity.deviceId,
+    auth_user_id: identity.authUserId ?? existingProfile?.auth_user_id ?? null,
+    device_id: existingProfile?.device_id ?? identity.deviceId,
     name: normalizedState.name,
     mission: normalizedState.mission,
     long_term_goal: normalizedState.longTermGoal,

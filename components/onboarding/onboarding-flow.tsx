@@ -3,6 +3,8 @@
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { OnboardingSyncStep } from "@/components/auth/onboarding-sync-step";
+import { useAuthSession } from "@/components/providers/auth-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,29 +22,35 @@ const textAreaClassName =
 
 const steps = [
   {
-    label: "Step 1 of 4",
+    label: "Step 1 of 5",
     title: "Who are you becoming?",
     description: "Set the identity and ambition this system is meant to protect.",
   },
   {
-    label: "Step 2 of 4",
+    label: "Step 2 of 5",
     title: "What pillars define this season?",
     description: "Choose the few areas that deserve pressure, not vague attention.",
   },
   {
-    label: "Step 3 of 4",
+    label: "Step 3 of 5",
     title: "What does a winning week look like?",
     description: "Turn standards into measurable weekly proof.",
   },
   {
-    label: "Step 4 of 4",
+    label: "Step 4 of 5",
     title: "Set your standards.",
     description: "Define the rules that make drift harder and recovery faster.",
+  },
+  {
+    label: "Step 5 of 5",
+    title: "Sync this system across devices?",
+    description: "Optional. Connect an email now, or continue in device-only mode and do it later.",
   },
 ] as const;
 
 export function OnboardingFlow() {
   const router = useRouter();
+  const { statusLabel } = useAuthSession();
   const {
     onboarding: form,
     setOnboarding: setForm,
@@ -488,6 +496,8 @@ export function OnboardingFlow() {
               </div>
             </div>
           ) : null}
+
+          {step === 4 ? <OnboardingSyncStep nextPath="/today" /> : null}
         </div>
 
         {stepError ? (
@@ -498,18 +508,26 @@ export function OnboardingFlow() {
 
         <div className="mt-8 flex flex-col gap-3 border-t border-white/8 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-6 text-stone-500">
-            {syncStatus === "saving"
-              ? "Saving changes..."
-              : syncSource === "supabase"
-                ? "Changes are syncing to Supabase."
-                : "Changes are saved on this device."}
+            {step === steps.length - 1
+              ? statusLabel === "connected"
+                ? "Connected account detected. You can enter Proof immediately."
+                : "Login is optional here. Continue device-only now, or sync this system later."
+              : syncStatus === "saving"
+                ? "Saving changes..."
+                : syncSource === "supabase"
+                  ? "Changes are syncing to Supabase."
+                  : "Changes are saved on this device."}
           </p>
           <div className="flex gap-3">
             <Button onClick={goBack} disabled={step === 0} variant="secondary">
               Back
             </Button>
             <Button onClick={goNext} size="lg">
-              {step === steps.length - 1 ? "Enter Proof" : "Continue"}
+              {step === steps.length - 1
+                ? statusLabel === "connected"
+                  ? "Enter Proof"
+                  : "Continue device-only"
+                : "Continue"}
             </Button>
           </div>
         </div>

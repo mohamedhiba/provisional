@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AuthProvider } from "@/components/providers/auth-provider";
 import { OnboardingProvider } from "@/components/providers/onboarding-provider";
 
 import "./globals.css";
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="antialiased">
-        <OnboardingProvider>{children}</OnboardingProvider>
+        <AuthProvider>
+          <OnboardingProvider>{children}</OnboardingProvider>
+        </AuthProvider>
       </body>
     </html>
   );
