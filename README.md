@@ -57,6 +57,7 @@ Stage 4.5 has started:
 - weekly review persistence and real weekly metrics
 - multi-week analytics history and streak tracking
 - monthly mission layer with dashboard alignment
+- account-level timezone preference for day/week/month rollover
 
 ## Local setup
 

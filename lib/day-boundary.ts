@@ -1,4 +1,5 @@
 import { getIsoDateForLocalDate } from "@/lib/daily-plan";
+import { getBrowserTimeZone as getResolvedBrowserTimeZone } from "@/lib/time-zone";
 
 function shiftIsoDate(dateString: string, days: number) {
   const date = new Date(`${dateString}T12:00:00`);
@@ -7,11 +8,7 @@ function shiftIsoDate(dateString: string, days: number) {
 }
 
 export function getBrowserTimeZone() {
-  if (typeof window === "undefined") {
-    return "UTC";
-  }
-
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  return getResolvedBrowserTimeZone();
 }
 
 export function getLocalIsoDateForTimestamp(timestamp: string, timeZone: string) {

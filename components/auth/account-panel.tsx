@@ -1,11 +1,19 @@
 "use client";
 
 import { Cloud, LogOut, Mail, Sparkles } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/components/providers/auth-provider";
+import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { Button, buttonStyles } from "@/components/ui/button";
+import {
+  formatCurrentTimeInTimeZone,
+  getBrowserTimeZone,
+  getEffectiveTimeZone,
+  getTimeZoneOptions,
+  normalizeTimeZone,
+} from "@/lib/time-zone";
 
 const inputClassName =
   "h-11 w-full rounded-2xl border border-white/14 bg-white/[0.08] px-4 text-sm text-stone-50 outline-none transition placeholder:text-stone-500 focus:border-amber-300/40";
@@ -14,12 +22,23 @@ export function AccountPanel() {
   const pathname = usePathname();
   const router = useRouter();
   const { canSync, hasLoaded, requestMagicLink, signOut, statusLabel, user } = useAuthSession();
+  const { onboarding, setOnboarding, syncStatus } = useOnboardingProfile();
   const [email, setEmail] = useState(user?.email ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState("");
+  const [timeZoneDraft, setTimeZoneDraft] = useState("");
+  const [timeZoneMessage, setTimeZoneMessage] = useState("");
 
   const isConnected = statusLabel === "connected";
+  const browserTimeZone = getBrowserTimeZone();
+  const effectiveTimeZone = getEffectiveTimeZone(onboarding.timeZone, browserTimeZone);
+  const usingDeviceTimeZone = !normalizeTimeZone(onboarding.timeZone);
+  const timeZoneOptions = useMemo(() => getTimeZoneOptions(), []);
+
+  useEffect(() => {
+    setTimeZoneDraft(onboarding.timeZone || browserTimeZone);
+  }, [browserTimeZone, onboarding.timeZone]);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,6 +52,35 @@ export function AccountPanel() {
 
     setMessage(result.message);
     setIsSubmitting(false);
+  }
+
+  function handleTimeZoneSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const normalized = normalizeTimeZone(timeZoneDraft);
+
+    if (!normalized) {
+      setTimeZoneMessage(
+        "Choose a valid timezone like America/New_York so Proof knows where midnight really is.",
+      );
+      return;
+    }
+
+    setOnboarding((current) => ({
+      ...current,
+      timeZone: normalized,
+    }));
+    setTimeZoneDraft(normalized);
+    setTimeZoneMessage(`Day resets now follow ${normalized}.`);
+  }
+
+  function handleUseDeviceTimeZone() {
+    setOnboarding((current) => ({
+      ...current,
+      timeZone: "",
+    }));
+    setTimeZoneDraft(browserTimeZone);
+    setTimeZoneMessage(`Day resets now follow this device: ${browserTimeZone}.`);
   }
 
   async function handleSignOut() {
@@ -98,6 +146,72 @@ export function AccountPanel() {
               : "Device-only mode still works, but cross-device sync is unavailable until auth is configured."}
         </p>
       </div>
+
+      <form
+        className="mt-4 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4"
+        onSubmit={handleTimeZoneSave}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
+              Day boundary
+            </p>
+            <p className="mt-2 text-sm font-medium text-stone-50">
+              {usingDeviceTimeZone
+                ? `Using this device timezone: ${browserTimeZone}`
+                : `Using account timezone: ${effectiveTimeZone}`}
+            </p>
+            <p className="mt-2 max-w-[30ch] text-sm leading-6 text-stone-400">
+              Right now that clock reads {formatCurrentTimeInTimeZone(effectiveTimeZone)}.
+              When this timezone reaches midnight, Proof opens a new day.
+            </p>
+          </div>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-stone-400">
+            {syncStatus === "saving" ? "Saving" : usingDeviceTimeZone ? "Device-first" : "Account-set"}
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
+            Timezone
+          </label>
+          <input
+            type="text"
+            value={timeZoneDraft}
+            onChange={(event) => setTimeZoneDraft(event.target.value)}
+            className={inputClassName}
+            list="proof-time-zones"
+            placeholder={browserTimeZone}
+            spellCheck={false}
+          />
+          <datalist id="proof-time-zones">
+            {timeZoneOptions.map((timeZone) => (
+              <option key={timeZone} value={timeZone} />
+            ))}
+          </datalist>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Button type="submit" variant="primary" size="md" className="w-full justify-center">
+            Save timezone
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            className="w-full justify-center"
+            onClick={handleUseDeviceTimeZone}
+          >
+            Use device timezone
+          </Button>
+        </div>
+
+        {timeZoneMessage ? (
+          <div className="mt-4 rounded-[1.15rem] border border-amber-300/14 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-stone-200">
+            {timeZoneMessage}
+          </div>
+        ) : null}
+      </form>
 
       {isConnected ? (
         <div className="mt-4 flex flex-col gap-3">

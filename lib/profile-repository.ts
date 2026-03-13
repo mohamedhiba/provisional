@@ -6,6 +6,7 @@ import {
   type OnboardingState,
 } from "@/lib/onboarding";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { normalizeTimeZone } from "@/lib/time-zone";
 
 export type PersistenceIdentity = {
   authUserId: string | null;
@@ -19,6 +20,7 @@ type StoredProfileRow = {
   name: string;
   mission: string | null;
   long_term_goal: string | null;
+  time_zone: string | null;
   non_negotiables: string | null;
   default_first_move: string | null;
   tone: string | null;
@@ -30,6 +32,7 @@ type ProfileRow = Pick<
   | "name"
   | "mission"
   | "long_term_goal"
+  | "time_zone"
   | "non_negotiables"
   | "default_first_move"
   | "tone"
@@ -111,7 +114,7 @@ type FocusSessionTransferRow = {
 };
 
 const profileSelectColumns =
-  "id, auth_user_id, device_id, name, mission, long_term_goal, non_negotiables, default_first_move, tone";
+  "id, auth_user_id, device_id, name, mission, long_term_goal, time_zone, non_negotiables, default_first_move, tone";
 
 function toPublicProfile(profile: StoredProfileRow | null): ProfileRow | null {
   if (!profile) {
@@ -123,6 +126,7 @@ function toPublicProfile(profile: StoredProfileRow | null): ProfileRow | null {
     name: profile.name,
     mission: profile.mission,
     long_term_goal: profile.long_term_goal,
+    time_zone: profile.time_zone,
     non_negotiables: profile.non_negotiables,
     default_first_move: profile.default_first_move,
     tone: profile.tone,
@@ -178,6 +182,13 @@ function selectPreferredTone(
   }
 
   return "Honest";
+}
+
+function selectPreferredTimeZone(
+  primary: StoredProfileRow["time_zone"],
+  fallback: StoredProfileRow["time_zone"],
+) {
+  return normalizeTimeZone(primary) || normalizeTimeZone(fallback) || null;
 }
 
 function mergePillarNames(primary: PillarRow[], fallback: PillarRow[]) {
@@ -528,6 +539,10 @@ async function mergeAuthProfileIntoDeviceProfile(
       deviceProfile.long_term_goal,
       authProfile.long_term_goal,
     ),
+    timeZone: selectPreferredTimeZone(
+      deviceProfile.time_zone,
+      authProfile.time_zone,
+    ) ?? "",
     nonNegotiables: selectPreferredText(
       deviceProfile.non_negotiables,
       authProfile.non_negotiables,
@@ -550,6 +565,7 @@ async function mergeAuthProfileIntoDeviceProfile(
       name: mergedOnboardingState.name,
       mission: mergedOnboardingState.mission,
       long_term_goal: mergedOnboardingState.longTermGoal,
+      time_zone: normalizeTimeZone(mergedOnboardingState.timeZone) || null,
       non_negotiables: mergedOnboardingState.nonNegotiables,
       default_first_move: mergedOnboardingState.defaultFirstMove,
       tone: mergedOnboardingState.tone,
@@ -731,6 +747,7 @@ export async function createOrUpdateProfileFromSeed(
   seed?: {
     name?: string;
     tone?: OnboardingState["tone"];
+    timeZone?: string;
   },
 ) {
   const supabase = createSupabaseAdminClient();
@@ -752,6 +769,7 @@ export async function createOrUpdateProfileFromSeed(
       device_id: identity.deviceId,
       name: seed?.name?.trim() || "Proof User",
       tone: seed?.tone ?? "Honest",
+      time_zone: normalizeTimeZone(seed?.timeZone) || null,
       updated_at: new Date().toISOString(),
     })
     .select("id")
@@ -778,6 +796,7 @@ export async function loadPersistedOnboardingState(identity: PersistenceIdentity
     name: resolvedProfile.name,
     mission: resolvedProfile.mission ?? "",
     longTermGoal: resolvedProfile.long_term_goal ?? "",
+    timeZone: resolvedProfile.time_zone ?? "",
     nonNegotiables: resolvedProfile.non_negotiables ?? "",
     defaultFirstMove: resolvedProfile.default_first_move ?? "",
     tone: (resolvedProfile.tone as OnboardingState["tone"] | null) ?? "Honest",
@@ -811,6 +830,7 @@ export async function savePersistedOnboardingState(
     name: normalizedState.name,
     mission: normalizedState.mission,
     long_term_goal: normalizedState.longTermGoal,
+    time_zone: normalizeTimeZone(normalizedState.timeZone) || null,
     non_negotiables: normalizedState.nonNegotiables,
     default_first_move: normalizedState.defaultFirstMove,
     tone: normalizedState.tone,

@@ -7,6 +7,7 @@ create table if not exists profiles (
   name text not null,
   mission text,
   long_term_goal text,
+  time_zone text,
   non_negotiables text,
   default_first_move text,
   tone text not null default 'Honest',

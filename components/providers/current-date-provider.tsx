@@ -9,45 +9,63 @@ import {
   type PropsWithChildren,
 } from "react";
 
-import {
-  getMillisecondsUntilNextLocalMidnight,
-  getTodayIsoDate,
-} from "@/lib/daily-plan";
+import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { getCurrentMonthStart } from "@/lib/monthly-mission";
 import { getCurrentWeekStart } from "@/lib/weekly-review";
+import {
+  getBrowserTimeZone,
+  getEffectiveTimeZone,
+  getIsoDateInTimeZone,
+  normalizeTimeZone,
+} from "@/lib/time-zone";
 
 type CurrentDateValue = {
   today: string;
   weekStart: string;
   monthStart: string;
+  timeZone: string;
+  browserTimeZone: string;
+  isDeviceTimeZone: boolean;
 };
 
 const CurrentDateContext = createContext<CurrentDateValue | null>(null);
 
-function createCurrentDateValue(): CurrentDateValue {
-  const today = getTodayIsoDate();
+function createCurrentDateValue(preferredTimeZone?: string): CurrentDateValue {
+  const browserTimeZone = getBrowserTimeZone();
+  const selectedTimeZone = normalizeTimeZone(preferredTimeZone);
+  const timeZone = getEffectiveTimeZone(selectedTimeZone, browserTimeZone);
+  const today = getIsoDateInTimeZone(timeZone);
 
   return {
     today,
     weekStart: getCurrentWeekStart(today),
     monthStart: getCurrentMonthStart(today),
+    timeZone,
+    browserTimeZone,
+    isDeviceTimeZone: !selectedTimeZone,
   };
 }
 
 export function CurrentDateProvider({ children }: PropsWithChildren) {
-  const [currentDate, setCurrentDate] = useState<CurrentDateValue>(createCurrentDateValue);
+  const {
+    onboarding: { timeZone: preferredTimeZone },
+  } = useOnboardingProfile();
+  const [currentDate, setCurrentDate] = useState<CurrentDateValue>(() =>
+    createCurrentDateValue(preferredTimeZone),
+  );
 
   useEffect(() => {
-    let timeoutId = 0;
-
     function refreshIfNeeded() {
       setCurrentDate((current) => {
-        const next = createCurrentDateValue();
+        const next = createCurrentDateValue(preferredTimeZone);
 
         if (
           current.today === next.today &&
           current.weekStart === next.weekStart &&
-          current.monthStart === next.monthStart
+          current.monthStart === next.monthStart &&
+          current.timeZone === next.timeZone &&
+          current.browserTimeZone === next.browserTimeZone &&
+          current.isDeviceTimeZone === next.isDeviceTimeZone
         ) {
           return current;
         }
@@ -56,21 +74,13 @@ export function CurrentDateProvider({ children }: PropsWithChildren) {
       });
     }
 
-    function scheduleMidnightRefresh(reference = new Date()) {
-      timeoutId = window.setTimeout(() => {
-        refreshIfNeeded();
-        scheduleMidnightRefresh(new Date());
-      }, getMillisecondsUntilNextLocalMidnight(reference));
-    }
-
-    const intervalId = window.setInterval(refreshIfNeeded, 60 * 1000);
-    scheduleMidnightRefresh();
+    refreshIfNeeded();
+    const intervalId = window.setInterval(refreshIfNeeded, 30 * 1000);
 
     return () => {
-      window.clearTimeout(timeoutId);
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [preferredTimeZone]);
 
   const value = useMemo(() => currentDate, [currentDate]);
 

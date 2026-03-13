@@ -18,7 +18,6 @@ import {
   writeLocalDailyReviewState,
   type DailyReviewState,
 } from "@/lib/daily-review";
-import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -46,11 +45,12 @@ const DailyReviewContext = createContext<DailyReviewContextValue | null>(null);
 async function requestDailyReview(
   method: "GET" | "POST",
   reviewDate: string,
+  timeZone: string,
   body?: Record<string, unknown>,
 ) {
   const query = new URLSearchParams({
     date: reviewDate,
-    timeZone: getBrowserTimeZone(),
+    timeZone,
   }).toString();
   const response = await fetch(`/api/daily-review?${query}`, {
     method,
@@ -68,7 +68,7 @@ async function requestDailyReview(
 
 export function DailyReviewProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const { today: reviewDate } = useCurrentDate();
+  const { today: reviewDate, timeZone } = useCurrentDate();
   const [review, setReview] = useState<DailyReviewState | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");
@@ -95,7 +95,7 @@ export function DailyReviewProvider({ children }: PropsWithChildren) {
 
     async function loadRemote() {
       try {
-        const payload = await requestDailyReview("GET", reviewDate);
+        const payload = await requestDailyReview("GET", reviewDate, timeZone);
 
         if (!active) {
           return;
@@ -129,7 +129,7 @@ export function DailyReviewProvider({ children }: PropsWithChildren) {
         }
 
         if (payload.remoteEnabled && localReview) {
-          const syncPayload = await requestDailyReview("POST", reviewDate, {
+          const syncPayload = await requestDailyReview("POST", reviewDate, timeZone, {
             review: localReview,
             profile: {
               name: onboarding.name,
@@ -182,7 +182,7 @@ export function DailyReviewProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [onboarding.name, onboarding.tone, reviewDate]);
+  }, [onboarding.name, onboarding.tone, reviewDate, timeZone]);
 
   async function submitReview(nextReview: DailyReviewState) {
     const normalized = normalizeDailyReviewState(nextReview, reviewDate);
@@ -197,7 +197,7 @@ export function DailyReviewProvider({ children }: PropsWithChildren) {
     );
 
     try {
-      const payload = await requestDailyReview("POST", reviewDate, {
+      const payload = await requestDailyReview("POST", reviewDate, timeZone, {
         review: normalized,
         profile: {
           name: onboarding.name,

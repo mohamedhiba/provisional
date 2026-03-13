@@ -20,7 +20,6 @@ import {
   writeLocalDailyPlanState,
   type DailyPlanState,
 } from "@/lib/daily-plan";
-import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -48,11 +47,12 @@ const TodayPlanContext = createContext<TodayPlanContextValue | null>(null);
 async function requestDailyPlan(
   method: "GET" | "POST",
   planDate: string,
+  timeZone: string,
   body?: Record<string, unknown>,
 ) {
   const query = new URLSearchParams({
     date: planDate,
-    timeZone: getBrowserTimeZone(),
+    timeZone,
   }).toString();
   const response = await fetch(`/api/daily-plan?${query}`, {
     method,
@@ -69,7 +69,7 @@ async function requestDailyPlan(
 }
 
 export function TodayPlanProvider({ children }: PropsWithChildren) {
-  const { today: planDate } = useCurrentDate();
+  const { today: planDate, timeZone } = useCurrentDate();
   const [dailyPlan, setDailyPlan] = useState<DailyPlanState>(
     createEmptyDailyPlan(planDate),
   );
@@ -103,7 +103,7 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
 
     async function loadRemote() {
       try {
-        const payload = await requestDailyPlan("GET", planDate);
+        const payload = await requestDailyPlan("GET", planDate, timeZone);
 
         if (!active) {
           return;
@@ -130,6 +130,7 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
 
         setSyncSource(payload.source);
         setSyncStatus(payload.remoteEnabled ? "ready" : "saved-local");
+
         if (payload.message?.startsWith("Recovered")) {
           const emptyPlan = createEmptyDailyPlan(planDate);
           clearLocalDailyPlanState(planDate);
@@ -139,6 +140,7 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
           setSyncMessage(payload.message);
           return;
         }
+
         setSyncMessage(
           payload.remoteEnabled
             ? "Supabase is connected. Today's first save will persist there."
@@ -165,7 +167,7 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [planDate]);
+  }, [planDate, timeZone]);
 
   useEffect(() => {
     if (!hasLoaded) {
@@ -189,9 +191,14 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
 
     const timeoutId = window.setTimeout(async () => {
       try {
-        const payload = await requestDailyPlan("POST", dailyPlan.planDate, {
-          plan: dailyPlan,
-        });
+        const payload = await requestDailyPlan(
+          "POST",
+          dailyPlan.planDate,
+          timeZone,
+          {
+            plan: dailyPlan,
+          },
+        );
 
         lastSavedSnapshotRef.current = snapshot;
         setRemoteEnabled(payload.remoteEnabled);
@@ -216,7 +223,7 @@ export function TodayPlanProvider({ children }: PropsWithChildren) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [dailyPlan, hasLoaded, remoteEnabled]);
+  }, [dailyPlan, hasLoaded, remoteEnabled, timeZone]);
 
   return (
     <TodayPlanContext.Provider

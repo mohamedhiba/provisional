@@ -18,7 +18,6 @@ import {
   writeLocalFocusSessions,
   type FocusSession,
 } from "@/lib/focus-session";
-import { getBrowserTimeZone } from "@/lib/day-boundary";
 import {
   type OnboardingPersistenceSource,
   type OnboardingSyncStatus,
@@ -47,11 +46,12 @@ const FocusSessionsContext = createContext<FocusSessionsContextValue | null>(nul
 async function requestFocusSessions(
   method: "GET" | "POST" | "DELETE",
   sessionDate: string,
+  timeZone: string,
   body?: Record<string, unknown>,
   id?: string,
 ) {
   const query = new URLSearchParams({ date: sessionDate });
-  query.set("timeZone", getBrowserTimeZone());
+  query.set("timeZone", timeZone);
 
   if (id) {
     query.set("id", id);
@@ -74,7 +74,7 @@ async function requestFocusSessions(
 
 export function FocusSessionsProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
-  const { today: sessionDate } = useCurrentDate();
+  const { today: sessionDate, timeZone } = useCurrentDate();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");
@@ -101,7 +101,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
 
     async function loadRemote() {
       try {
-        const payload = await requestFocusSessions("GET", sessionDate);
+        const payload = await requestFocusSessions("GET", sessionDate, timeZone);
 
         if (!active) {
           return;
@@ -134,7 +134,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         }
 
         if (payload.remoteEnabled && localSessions.length > 0) {
-          const syncPayload = await requestFocusSessions("POST", sessionDate, {
+          const syncPayload = await requestFocusSessions("POST", sessionDate, timeZone, {
             sessions: localSessions,
             profile: {
               name: onboarding.name,
@@ -187,7 +187,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [onboarding.name, onboarding.tone, sessionDate]);
+  }, [onboarding.name, onboarding.tone, sessionDate, timeZone]);
 
   async function createSession(session: FocusSession) {
     const normalized = normalizeFocusSession(session, sessionDate);
@@ -203,7 +203,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     );
 
     try {
-      const payload = await requestFocusSessions("POST", sessionDate, {
+      const payload = await requestFocusSessions("POST", sessionDate, timeZone, {
         session: normalized,
         profile: {
           name: onboarding.name,
@@ -249,7 +249,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     }
 
     try {
-      const payload = await requestFocusSessions("DELETE", sessionDate, undefined, id);
+      const payload = await requestFocusSessions("DELETE", sessionDate, timeZone, undefined, id);
       setRemoteEnabled(payload.remoteEnabled);
       setSyncSource(payload.source);
       setSyncStatus(

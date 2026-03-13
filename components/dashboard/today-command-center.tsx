@@ -10,6 +10,7 @@ import { PersonalizedBriefingCard } from "@/components/dashboard/personalized-br
 import { StartHerePanel } from "@/components/dashboard/start-here-panel";
 import { VisionBridge } from "@/components/dashboard/vision-bridge";
 import { useAnalytics } from "@/components/providers/analytics-provider";
+import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
@@ -33,6 +34,7 @@ const inputClassName =
 
 export function TodayCommandCenter() {
   const { onboarding } = useOnboardingProfile();
+  const { timeZone, isDeviceTimeZone } = useCurrentDate();
   const { dailyPlan, setDailyPlan, hasLoaded, syncMessage } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
@@ -238,7 +240,11 @@ export function TodayCommandCenter() {
           <MetricCard
             label="Date"
             value={formatPlanDate(dailyPlan.planDate)}
-            detail="The day becomes real only when it is defined."
+            detail={
+              isDeviceTimeZone
+                ? `The day becomes real only when it is defined. Reset follows this device: ${timeZone}.`
+                : `The day becomes real only when it is defined. Reset follows your account timezone: ${timeZone}.`
+            }
           />
         </div>
       </div>

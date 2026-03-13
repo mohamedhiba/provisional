@@ -1,3 +1,5 @@
+import { normalizeTimeZone } from "@/lib/time-zone";
+
 export type WeeklyTarget = {
   id: string;
   pillar: string;
@@ -22,6 +24,7 @@ export type OnboardingState = {
   name: string;
   mission: string;
   longTermGoal: string;
+  timeZone: string;
   pillars: string[];
   weeklyTargets: WeeklyTarget[];
   nonNegotiables: string;
@@ -61,6 +64,7 @@ export const defaultOnboardingState: OnboardingState = {
   name: "",
   mission: "",
   longTermGoal: "",
+  timeZone: "",
   pillars: ["Academics", "Career", "Health"],
   weeklyTargets: [
     {
@@ -117,6 +121,7 @@ export function normalizeOnboardingState(
     name: safe.name ?? defaultOnboardingState.name,
     mission: safe.mission ?? defaultOnboardingState.mission,
     longTermGoal: safe.longTermGoal ?? defaultOnboardingState.longTermGoal,
+    timeZone: normalizeTimeZone(safe.timeZone),
     pillars,
     weeklyTargets,
     nonNegotiables:
