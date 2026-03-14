@@ -40,8 +40,10 @@ export function AppShell({ children }: PropsWithChildren) {
           : "--",
     ],
     [
-      "Weekly",
-      weeklyLoaded ? `${summary.winningDays} / 5` : "--",
+      "This week",
+      weeklyLoaded
+        ? `${summary.winningDays} win${summary.winningDays === 1 ? "" : "s"}`
+        : "--",
     ],
     [
       "Score",

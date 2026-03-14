@@ -1,4 +1,8 @@
 import { getTodayIsoDate } from "@/lib/daily-plan";
+import {
+  normalizeWeekStartPreference,
+  type WeekStartPreference,
+} from "@/lib/onboarding";
 
 export type WeeklyReviewState = {
   weekStart: string;
@@ -56,11 +60,30 @@ function toIsoDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export function getCurrentWeekStart(referenceDate = getTodayIsoDate()) {
+export function getWeekStartDayIndex(weekStartsOn: WeekStartPreference = "monday") {
+  const normalized = normalizeWeekStartPreference(weekStartsOn);
+  const indexByWeekStart: Record<WeekStartPreference, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+
+  return indexByWeekStart[normalized];
+}
+
+export function getCurrentWeekStart(
+  referenceDate = getTodayIsoDate(),
+  weekStartsOn: WeekStartPreference = "monday",
+) {
   const date = new Date(`${referenceDate}T12:00:00`);
   const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  date.setDate(date.getDate() + diff);
+  const weekStartDayIndex = getWeekStartDayIndex(weekStartsOn);
+  const diff = (day - weekStartDayIndex + 7) % 7;
+  date.setDate(date.getDate() - diff);
 
   return toIsoDate(date);
 }

@@ -12,6 +12,7 @@ import {
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { getCurrentMonthStart } from "@/lib/monthly-mission";
 import { getCurrentWeekStart } from "@/lib/weekly-review";
+import { normalizeWeekStartPreference, type WeekStartPreference } from "@/lib/onboarding";
 import {
   getBrowserTimeZone,
   getEffectiveTimeZone,
@@ -26,38 +27,44 @@ type CurrentDateValue = {
   timeZone: string;
   browserTimeZone: string;
   isDeviceTimeZone: boolean;
+  weekStartsOn: WeekStartPreference;
 };
 
 const CurrentDateContext = createContext<CurrentDateValue | null>(null);
 
-function createCurrentDateValue(preferredTimeZone?: string): CurrentDateValue {
+function createCurrentDateValue(
+  preferredTimeZone?: string,
+  preferredWeekStart?: string,
+): CurrentDateValue {
   const browserTimeZone = getBrowserTimeZone();
   const selectedTimeZone = normalizeTimeZone(preferredTimeZone);
   const timeZone = getEffectiveTimeZone(selectedTimeZone, browserTimeZone);
+  const weekStartsOn = normalizeWeekStartPreference(preferredWeekStart);
   const today = getIsoDateInTimeZone(timeZone);
 
   return {
     today,
-    weekStart: getCurrentWeekStart(today),
+    weekStart: getCurrentWeekStart(today, weekStartsOn),
     monthStart: getCurrentMonthStart(today),
     timeZone,
     browserTimeZone,
     isDeviceTimeZone: !selectedTimeZone,
+    weekStartsOn,
   };
 }
 
 export function CurrentDateProvider({ children }: PropsWithChildren) {
   const {
-    onboarding: { timeZone: preferredTimeZone },
+    onboarding: { timeZone: preferredTimeZone, weekStartsOn: preferredWeekStart },
   } = useOnboardingProfile();
   const [currentDate, setCurrentDate] = useState<CurrentDateValue>(() =>
-    createCurrentDateValue(preferredTimeZone),
+    createCurrentDateValue(preferredTimeZone, preferredWeekStart),
   );
 
   useEffect(() => {
     function refreshIfNeeded() {
       setCurrentDate((current) => {
-        const next = createCurrentDateValue(preferredTimeZone);
+        const next = createCurrentDateValue(preferredTimeZone, preferredWeekStart);
 
         if (
           current.today === next.today &&
@@ -65,7 +72,8 @@ export function CurrentDateProvider({ children }: PropsWithChildren) {
           current.monthStart === next.monthStart &&
           current.timeZone === next.timeZone &&
           current.browserTimeZone === next.browserTimeZone &&
-          current.isDeviceTimeZone === next.isDeviceTimeZone
+          current.isDeviceTimeZone === next.isDeviceTimeZone &&
+          current.weekStartsOn === next.weekStartsOn
         ) {
           return current;
         }
@@ -80,7 +88,7 @@ export function CurrentDateProvider({ children }: PropsWithChildren) {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [preferredTimeZone]);
+  }, [preferredTimeZone, preferredWeekStart]);
 
   const value = useMemo(() => currentDate, [currentDate]);
 

@@ -60,13 +60,19 @@ export function getAnalyticsRangeStart(referenceDate = getTodayIsoDate(), days =
   return shiftIsoDate(referenceDate, -(days - 1));
 }
 
-export function getActivityGridStart(referenceDate = getTodayIsoDate(), weeks = 12) {
-  const currentWeekStart = getCurrentWeekStart(referenceDate);
+export function getActivityGridStart(
+  referenceDate = getTodayIsoDate(),
+  weeks = 12,
+  currentWeekStart = getCurrentWeekStart(referenceDate),
+) {
   return shiftIsoDate(currentWeekStart, -7 * (weeks - 1));
 }
 
-export function getActivityGridEnd(referenceDate = getTodayIsoDate()) {
-  return getWeekEnd(getCurrentWeekStart(referenceDate));
+export function getActivityGridEnd(
+  referenceDate = getTodayIsoDate(),
+  currentWeekStart = getCurrentWeekStart(referenceDate),
+) {
+  return getWeekEnd(currentWeekStart);
 }
 
 export function getHistoryWeekStarts(
@@ -78,11 +84,16 @@ export function getHistoryWeekStarts(
   );
 }
 
-export function createEmptyAnalyticsSnapshot(referenceDate = getTodayIsoDate()): AnalyticsSnapshot {
-  const weekStarts = getHistoryWeekStarts(4, getCurrentWeekStart(referenceDate));
-  const currentWeekStart = getCurrentWeekStart(referenceDate);
+export function createEmptyAnalyticsSnapshot(
+  referenceDate = getTodayIsoDate(),
+  currentWeekStart = getCurrentWeekStart(referenceDate),
+): AnalyticsSnapshot {
+  const weekStarts = getHistoryWeekStarts(4, currentWeekStart);
   const today = referenceDate;
-  const activityGrid = getWeekDates(getActivityGridStart(today), getActivityGridEnd(today));
+  const activityGrid = getWeekDates(
+    getActivityGridStart(today, 12, currentWeekStart),
+    getActivityGridEnd(today, currentWeekStart),
+  );
 
   return {
     currentStreak: 0,

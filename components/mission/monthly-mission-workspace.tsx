@@ -294,7 +294,7 @@ export function MonthlyMissionWorkspace() {
                     className={inputClassName}
                     value={target.label}
                     onChange={(event) => updateTarget(target.id, "label", event.target.value)}
-                    placeholder="Example: Applications sent"
+                    placeholder="Example: Deliverables shipped"
                   />
                   <div className="grid gap-3 sm:grid-cols-3">
                     <input

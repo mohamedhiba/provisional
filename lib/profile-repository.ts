@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   normalizeOnboardingState,
+  normalizeWeekStartPreference,
   type OnboardingPersistenceSource,
   type OnboardingState,
 } from "@/lib/onboarding";
@@ -21,6 +22,7 @@ type StoredProfileRow = {
   mission: string | null;
   long_term_goal: string | null;
   time_zone: string | null;
+  week_starts_on: string | null;
   non_negotiables: string | null;
   default_first_move: string | null;
   tone: string | null;
@@ -33,6 +35,7 @@ type ProfileRow = Pick<
   | "mission"
   | "long_term_goal"
   | "time_zone"
+  | "week_starts_on"
   | "non_negotiables"
   | "default_first_move"
   | "tone"
@@ -114,7 +117,7 @@ type FocusSessionTransferRow = {
 };
 
 const profileSelectColumns =
-  "id, auth_user_id, device_id, name, mission, long_term_goal, time_zone, non_negotiables, default_first_move, tone";
+  "id, auth_user_id, device_id, name, mission, long_term_goal, time_zone, week_starts_on, non_negotiables, default_first_move, tone";
 
 function toPublicProfile(profile: StoredProfileRow | null): ProfileRow | null {
   if (!profile) {
@@ -127,6 +130,7 @@ function toPublicProfile(profile: StoredProfileRow | null): ProfileRow | null {
     mission: profile.mission,
     long_term_goal: profile.long_term_goal,
     time_zone: profile.time_zone,
+    week_starts_on: profile.week_starts_on,
     non_negotiables: profile.non_negotiables,
     default_first_move: profile.default_first_move,
     tone: profile.tone,
@@ -189,6 +193,17 @@ function selectPreferredTimeZone(
   fallback: StoredProfileRow["time_zone"],
 ) {
   return normalizeTimeZone(primary) || normalizeTimeZone(fallback) || null;
+}
+
+function selectPreferredWeekStart(
+  primary: StoredProfileRow["week_starts_on"],
+  fallback: StoredProfileRow["week_starts_on"],
+) {
+  if (primary?.trim()) {
+    return normalizeWeekStartPreference(primary);
+  }
+
+  return normalizeWeekStartPreference(fallback);
 }
 
 function mergePillarNames(primary: PillarRow[], fallback: PillarRow[]) {
@@ -543,6 +558,10 @@ async function mergeAuthProfileIntoDeviceProfile(
       deviceProfile.time_zone,
       authProfile.time_zone,
     ) ?? "",
+    weekStartsOn: selectPreferredWeekStart(
+      deviceProfile.week_starts_on,
+      authProfile.week_starts_on,
+    ),
     nonNegotiables: selectPreferredText(
       deviceProfile.non_negotiables,
       authProfile.non_negotiables,
@@ -566,6 +585,7 @@ async function mergeAuthProfileIntoDeviceProfile(
       mission: mergedOnboardingState.mission,
       long_term_goal: mergedOnboardingState.longTermGoal,
       time_zone: normalizeTimeZone(mergedOnboardingState.timeZone) || null,
+      week_starts_on: mergedOnboardingState.weekStartsOn,
       non_negotiables: mergedOnboardingState.nonNegotiables,
       default_first_move: mergedOnboardingState.defaultFirstMove,
       tone: mergedOnboardingState.tone,
@@ -727,6 +747,7 @@ export async function attachAuthenticatedProfile(identity: PersistenceIdentity) 
       auth_user_id: identity.authUserId,
       name: "Proof User",
       tone: "Honest",
+      week_starts_on: "monday",
       updated_at: new Date().toISOString(),
     })
     .select("id")
@@ -748,6 +769,7 @@ export async function createOrUpdateProfileFromSeed(
     name?: string;
     tone?: OnboardingState["tone"];
     timeZone?: string;
+    weekStartsOn?: OnboardingState["weekStartsOn"];
   },
 ) {
   const supabase = createSupabaseAdminClient();
@@ -770,6 +792,7 @@ export async function createOrUpdateProfileFromSeed(
       name: seed?.name?.trim() || "Proof User",
       tone: seed?.tone ?? "Honest",
       time_zone: normalizeTimeZone(seed?.timeZone) || null,
+      week_starts_on: normalizeWeekStartPreference(seed?.weekStartsOn),
       updated_at: new Date().toISOString(),
     })
     .select("id")
@@ -797,6 +820,7 @@ export async function loadPersistedOnboardingState(identity: PersistenceIdentity
     mission: resolvedProfile.mission ?? "",
     longTermGoal: resolvedProfile.long_term_goal ?? "",
     timeZone: resolvedProfile.time_zone ?? "",
+    weekStartsOn: normalizeWeekStartPreference(resolvedProfile.week_starts_on),
     nonNegotiables: resolvedProfile.non_negotiables ?? "",
     defaultFirstMove: resolvedProfile.default_first_move ?? "",
     tone: (resolvedProfile.tone as OnboardingState["tone"] | null) ?? "Honest",
@@ -831,6 +855,7 @@ export async function savePersistedOnboardingState(
     mission: normalizedState.mission,
     long_term_goal: normalizedState.longTermGoal,
     time_zone: normalizeTimeZone(normalizedState.timeZone) || null,
+    week_starts_on: normalizedState.weekStartsOn,
     non_negotiables: normalizedState.nonNegotiables,
     default_first_move: normalizedState.defaultFirstMove,
     tone: normalizedState.tone,

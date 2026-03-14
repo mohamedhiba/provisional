@@ -13,11 +13,12 @@ export async function GET(request: Request) {
   const identity = await resolvePersistenceIdentity();
   const { searchParams } = new URL(request.url);
   const referenceDate = searchParams.get("date") ?? getTodayIsoDate();
+  const weekStart = searchParams.get("weekStart") ?? undefined;
 
   if (!env.hasSupabaseAdminEnv) {
     return withDeviceCookie(
       NextResponse.json({
-        snapshot: createEmptyAnalyticsSnapshot(referenceDate),
+        snapshot: createEmptyAnalyticsSnapshot(referenceDate, weekStart),
         remoteEnabled: false,
       }),
       identity,
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     const snapshot = await loadAnalyticsSnapshot({
       authUserId: identity.authUserId,
       deviceId: identity.deviceId,
-    }, referenceDate);
+    }, referenceDate, weekStart);
 
     return withDeviceCookie(
       NextResponse.json({
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
   } catch {
     return withDeviceCookie(
       NextResponse.json({
-        snapshot: createEmptyAnalyticsSnapshot(referenceDate),
+        snapshot: createEmptyAnalyticsSnapshot(referenceDate, weekStart),
         remoteEnabled: false,
       }),
       identity,

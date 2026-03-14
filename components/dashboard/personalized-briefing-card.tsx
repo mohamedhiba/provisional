@@ -127,7 +127,13 @@ export function PersonalizedBriefingCard() {
   const { summary, hasLoaded: weeklyLoaded } = useWeeklyReview();
   const { mission, hasLoaded: missionLoaded } = useMonthlyMission();
   const { snapshot, hasLoaded: analyticsLoaded } = useAnalytics();
-  const [windowInfo, setWindowInfo] = useState(() => getBriefingWindow(new Date()));
+  const [windowInfo, setWindowInfo] = useState(() =>
+    getBriefingWindow(new Date(), {
+      date: today,
+      weekStart,
+      monthStart,
+    }),
+  );
   const [briefing, setBriefing] = useState<PersonalizedBriefing | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [refreshNonce, setRefreshNonce] = useState(0);
@@ -145,16 +151,28 @@ export function PersonalizedBriefingCard() {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      setWindowInfo(getBriefingWindow(new Date()));
+      setWindowInfo(
+        getBriefingWindow(new Date(), {
+          date: today,
+          weekStart,
+          monthStart,
+        }),
+      );
     }, 1000 * 60 * 5);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [monthStart, today, weekStart]);
 
   useEffect(() => {
-    setWindowInfo(getBriefingWindow(new Date()));
+    setWindowInfo(
+      getBriefingWindow(new Date(), {
+        date: today,
+        weekStart,
+        monthStart,
+      }),
+    );
   }, [monthStart, today, weekStart]);
 
   const storageKey = useMemo(

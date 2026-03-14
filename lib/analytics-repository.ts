@@ -281,19 +281,19 @@ function createDriftAlerts(input: {
 export async function loadAnalyticsSnapshot(
   identity: PersistenceIdentity,
   referenceDate = getTodayIsoDate(),
+  currentWeekStart = getCurrentWeekStart(referenceDate),
 ): Promise<AnalyticsSnapshot> {
   const supabase = createSupabaseAdminClient();
   const profile = await findProfileByIdentity(identity);
 
   if (!profile) {
-    return createEmptyAnalyticsSnapshot(referenceDate);
+    return createEmptyAnalyticsSnapshot(referenceDate, currentWeekStart);
   }
 
-  const currentWeekStart = getCurrentWeekStart(referenceDate);
   const weekStarts = getHistoryWeekStarts(4, currentWeekStart);
   const today = referenceDate;
-  const rangeStart = getActivityGridStart(today);
-  const displayEnd = getActivityGridEnd(today);
+  const rangeStart = getActivityGridStart(today, 12, currentWeekStart);
+  const displayEnd = getActivityGridEnd(today, currentWeekStart);
   const queryEnd = today;
 
   const [

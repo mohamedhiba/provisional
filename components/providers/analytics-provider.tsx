@@ -26,7 +26,7 @@ type AnalyticsContextValue = {
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
 
 export function AnalyticsProvider({ children }: PropsWithChildren) {
-  const { today } = useCurrentDate();
+  const { today, weekStart } = useCurrentDate();
   const { dailyPlan } = useTodayPlan();
   const { sessions } = useFocusSessions();
   const { review } = useDailyReview();
@@ -41,7 +41,7 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
 
     async function loadSnapshot() {
       try {
-        const params = new URLSearchParams({ date: today });
+        const params = new URLSearchParams({ date: today, weekStart });
         const response = await fetch(`/api/analytics?${params.toString()}`, {
           cache: "no-store",
         });
@@ -65,7 +65,7 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
           return;
         }
 
-        setSnapshot(createEmptyAnalyticsSnapshot(today));
+        setSnapshot(createEmptyAnalyticsSnapshot(today, weekStart));
       } finally {
         if (active) {
           setHasLoaded(true);
@@ -84,6 +84,7 @@ export function AnalyticsProvider({ children }: PropsWithChildren) {
     sessions.length,
     sessions[0]?.createdAt,
     today,
+    weekStart,
     review?.reviewDate,
     summary.reviewCompletionRate,
     summary.totalScore,

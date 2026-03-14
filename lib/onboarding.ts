@@ -9,6 +9,14 @@ export type WeeklyTarget = {
 };
 
 export type AccountabilityTone = "Honest" | "Strict" | "Supportive";
+export type WeekStartPreference =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
 export type OnboardingPersistenceSource = "local" | "supabase" | "none";
 
@@ -25,6 +33,7 @@ export type OnboardingState = {
   mission: string;
   longTermGoal: string;
   timeZone: string;
+  weekStartsOn: WeekStartPreference;
   pillars: string[];
   weeklyTargets: WeeklyTarget[];
   nonNegotiables: string;
@@ -36,9 +45,13 @@ export const onboardingStorageKey = "proof-onboarding-v1";
 export const onboardingDeviceCookieKey = "proof-device-id";
 
 export const pillarOptions = [
+  "Work",
+  "Personal",
+  "Study",
   "Academics",
   "Career",
   "Health",
+  "Relationships",
   "Discipline",
   "Build",
   "Finances",
@@ -49,6 +62,36 @@ export const accountabilityTones: AccountabilityTone[] = [
   "Strict",
   "Supportive",
 ];
+
+export const weekStartOptions: Array<{
+  value: WeekStartPreference;
+  label: string;
+}> = [
+  { value: "monday", label: "Monday" },
+  { value: "tuesday", label: "Tuesday" },
+  { value: "wednesday", label: "Wednesday" },
+  { value: "thursday", label: "Thursday" },
+  { value: "friday", label: "Friday" },
+  { value: "saturday", label: "Saturday" },
+  { value: "sunday", label: "Sunday" },
+];
+
+export function normalizeWeekStartPreference(
+  value: string | null | undefined,
+): WeekStartPreference {
+  const normalized = value?.trim().toLowerCase() as WeekStartPreference | undefined;
+
+  if (weekStartOptions.some((option) => option.value === normalized)) {
+    return normalized as WeekStartPreference;
+  }
+
+  return "monday";
+}
+
+export function getWeekStartLabel(value: string | null | undefined) {
+  const normalized = normalizeWeekStartPreference(value);
+  return weekStartOptions.find((option) => option.value === normalized)?.label ?? "Monday";
+}
 
 export function createWeeklyTarget(pillar = ""): WeeklyTarget {
   return {
@@ -65,27 +108,28 @@ export const defaultOnboardingState: OnboardingState = {
   mission: "",
   longTermGoal: "",
   timeZone: "",
-  pillars: ["Academics", "Career", "Health"],
+  weekStartsOn: "monday",
+  pillars: ["Work", "Health", "Personal"],
   weeklyTargets: [
     {
-      id: "target-career",
-      pillar: "Career",
-      label: "Applications sent",
+      id: "target-work",
+      pillar: "Work",
+      label: "High-value work blocks",
       targetNumber: "10",
-      targetUnit: "per week",
-    },
-    {
-      id: "target-academics",
-      pillar: "Academics",
-      label: "Study blocks",
-      targetNumber: "12",
       targetUnit: "per week",
     },
     {
       id: "target-health",
       pillar: "Health",
-      label: "Workouts",
+      label: "Training or recovery sessions",
       targetNumber: "4",
+      targetUnit: "per week",
+    },
+    {
+      id: "target-personal",
+      pillar: "Personal",
+      label: "Life upkeep blocks",
+      targetNumber: "3",
       targetUnit: "per week",
     },
   ],
@@ -122,6 +166,7 @@ export function normalizeOnboardingState(
     mission: safe.mission ?? defaultOnboardingState.mission,
     longTermGoal: safe.longTermGoal ?? defaultOnboardingState.longTermGoal,
     timeZone: normalizeTimeZone(safe.timeZone),
+    weekStartsOn: normalizeWeekStartPreference(safe.weekStartsOn),
     pillars,
     weeklyTargets,
     nonNegotiables:

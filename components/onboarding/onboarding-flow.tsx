@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import {
   accountabilityTones,
   createWeeklyTarget,
+  getWeekStartLabel,
   pillarOptions,
+  weekStartOptions,
   type OnboardingState,
 } from "@/lib/onboarding";
 
@@ -146,8 +148,8 @@ export function OnboardingFlow() {
 
   function validateCurrentStep() {
     if (step === 0) {
-      if (!form.name.trim() || !form.mission.trim() || !form.longTermGoal.trim()) {
-        return "Fill out your name, mission, and long-term goal before moving on.";
+      if (!form.mission.trim() || !form.longTermGoal.trim()) {
+        return "Write the mission and long-term direction before moving on.";
       }
     }
 
@@ -271,6 +273,10 @@ export function OnboardingFlow() {
             <p>
               <span className="text-stone-500">Tone:</span> {form.tone}
             </p>
+            <p>
+              <span className="text-stone-500">Week starts on:</span>{" "}
+              {getWeekStartLabel(form.weekStartsOn)}
+            </p>
           </div>
           <p className="mt-5 text-sm leading-6 text-stone-500">
             {hasLoaded
@@ -303,13 +309,13 @@ export function OnboardingFlow() {
             <div className="grid gap-5">
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-[0.25em] text-stone-500">
-                  Name
+                  Your name (optional)
                 </label>
                 <input
                   className={inputClassName}
                   value={form.name}
                   onChange={(event) => setField("name", event.target.value)}
-                  placeholder="Mohamed"
+                  placeholder="What should Proof call you?"
                 />
               </div>
               <div className="space-y-2">
@@ -320,7 +326,7 @@ export function OnboardingFlow() {
                   className={textAreaClassName}
                   value={form.mission}
                   onChange={(event) => setField("mission", event.target.value)}
-                  placeholder="I do the hard thing first and turn ambition into evidence."
+                  placeholder="Example: Turn ambition into daily proof through a simpler, harder standard."
                 />
               </div>
               <div className="space-y-2">
@@ -331,7 +337,7 @@ export function OnboardingFlow() {
                   className={textAreaClassName}
                   value={form.longTermGoal}
                   onChange={(event) => setField("longTermGoal", event.target.value)}
-                  placeholder="ML engineer role, stronger GPA, disciplined life."
+                  placeholder="Example: Build a stronger career, healthier life, better craft, or steadier discipline."
                 />
               </div>
             </div>
@@ -373,7 +379,7 @@ export function OnboardingFlow() {
                     className={inputClassName}
                     value={customPillar}
                     onChange={(event) => setCustomPillar(event.target.value)}
-                    placeholder="Examples: Relationships, Faith, Writing"
+                    placeholder="Examples: Creativity, Family, Community"
                   />
                   <Button onClick={addCustomPillar} variant="secondary">
                     Add pillar
@@ -385,6 +391,29 @@ export function OnboardingFlow() {
 
           {step === 2 ? (
             <div className="space-y-4">
+              <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+                <label className="text-xs uppercase tracking-[0.25em] text-stone-500">
+                  Week starts on
+                </label>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[0.75fr_1.25fr] sm:items-start">
+                  <select
+                    className={inputClassName}
+                    value={form.weekStartsOn}
+                    onChange={(event) => setField("weekStartsOn", event.target.value as OnboardingState["weekStartsOn"])}
+                  >
+                    {weekStartOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-sm leading-7 text-stone-400">
+                    Pick the day that should open your week. Reviews, analytics, and weekly
+                    momentum will all follow this boundary.
+                  </p>
+                </div>
+              </div>
+
               {form.weeklyTargets.map((target) => (
                 <div
                   key={target.id}
@@ -411,7 +440,7 @@ export function OnboardingFlow() {
                       onChange={(event) =>
                         updateTarget(target.id, "label", event.target.value)
                       }
-                      placeholder="Applications sent"
+                      placeholder="Example: Client proposals sent"
                     />
                     <input
                       className={inputClassName}
@@ -457,7 +486,7 @@ export function OnboardingFlow() {
                   onChange={(event) =>
                     setField("nonNegotiables", event.target.value)
                   }
-                  placeholder="Sleep by 12, gym four times a week, no-scroll during work blocks."
+                  placeholder="Example: Protect sleep, keep mornings clear, and do not let distraction decide the day."
                 />
               </div>
               <div className="space-y-2">
@@ -470,7 +499,7 @@ export function OnboardingFlow() {
                   onChange={(event) =>
                     setField("defaultFirstMove", event.target.value)
                   }
-                  placeholder="Do the hardest meaningful task before admin work."
+                  placeholder="Example: Finish the hardest meaningful task before admin, inbox, or planning."
                 />
               </div>
               <div className="space-y-3">

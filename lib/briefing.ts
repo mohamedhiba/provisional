@@ -80,10 +80,13 @@ export function getMonthDayContext(monthStart: string, currentDate: string) {
   };
 }
 
-export function getBriefingWindow(date = new Date()): BriefingWindow {
-  const currentDate = toLocalIsoDate(date);
-  const weekStart = getCurrentWeekStart(currentDate);
-  const monthStart = getCurrentMonthStart(currentDate);
+export function getBriefingWindow(
+  date = new Date(),
+  overrides?: Partial<Pick<BriefingWindow, "date" | "weekStart" | "monthStart">>,
+): BriefingWindow {
+  const currentDate = overrides?.date ?? toLocalIsoDate(date);
+  const weekStart = overrides?.weekStart ?? getCurrentWeekStart(currentDate);
+  const monthStart = overrides?.monthStart ?? getCurrentMonthStart(currentDate);
   const weekday = date.getDay();
   const hour = date.getHours();
   const { dayOfMonth, daysRemaining } = getMonthDayContext(monthStart, currentDate);

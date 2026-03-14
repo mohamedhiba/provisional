@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthSession } from "@/components/providers/auth-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import { Button, buttonStyles } from "@/components/ui/button";
+import { getWeekStartLabel, weekStartOptions } from "@/lib/onboarding";
 import {
   formatCurrentTimeInTimeZone,
   getBrowserTimeZone,
@@ -28,6 +29,8 @@ export function AccountPanel() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState("");
   const [timeZoneDraft, setTimeZoneDraft] = useState("");
+  const [weekStartsOnDraft, setWeekStartsOnDraft] = useState(onboarding.weekStartsOn);
+  const [useDeviceTimeZoneDraft, setUseDeviceTimeZoneDraft] = useState(!normalizeTimeZone(onboarding.timeZone));
   const [timeZoneMessage, setTimeZoneMessage] = useState("");
 
   const isConnected = statusLabel === "connected";
@@ -38,7 +41,9 @@ export function AccountPanel() {
 
   useEffect(() => {
     setTimeZoneDraft(onboarding.timeZone || browserTimeZone);
-  }, [browserTimeZone, onboarding.timeZone]);
+    setWeekStartsOnDraft(onboarding.weekStartsOn);
+    setUseDeviceTimeZoneDraft(!normalizeTimeZone(onboarding.timeZone));
+  }, [browserTimeZone, onboarding.timeZone, onboarding.weekStartsOn]);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,12 +59,12 @@ export function AccountPanel() {
     setIsSubmitting(false);
   }
 
-  function handleTimeZoneSave(event: FormEvent<HTMLFormElement>) {
+  function handleCalendarSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalized = normalizeTimeZone(timeZoneDraft);
 
-    if (!normalized) {
+    if (!useDeviceTimeZoneDraft && !normalized) {
       setTimeZoneMessage(
         "Choose a valid timezone like America/New_York so Proof knows where midnight really is.",
       );
@@ -68,19 +73,28 @@ export function AccountPanel() {
 
     setOnboarding((current) => ({
       ...current,
-      timeZone: normalized,
+      timeZone: useDeviceTimeZoneDraft ? "" : normalized,
+      weekStartsOn: weekStartsOnDraft,
     }));
-    setTimeZoneDraft(normalized);
-    setTimeZoneMessage(`Day resets now follow ${normalized}.`);
+    setTimeZoneDraft(useDeviceTimeZoneDraft ? browserTimeZone : normalized);
+    setTimeZoneMessage(
+      useDeviceTimeZoneDraft
+        ? `Calendar settings updated. Day resets follow this device, and weeks open on ${getWeekStartLabel(weekStartsOnDraft)}.`
+        : `Calendar settings updated. Day resets follow ${normalized}, and weeks open on ${getWeekStartLabel(weekStartsOnDraft)}.`,
+    );
   }
 
   function handleUseDeviceTimeZone() {
     setOnboarding((current) => ({
       ...current,
       timeZone: "",
+      weekStartsOn: weekStartsOnDraft,
     }));
     setTimeZoneDraft(browserTimeZone);
-    setTimeZoneMessage(`Day resets now follow this device: ${browserTimeZone}.`);
+    setUseDeviceTimeZoneDraft(true);
+    setTimeZoneMessage(
+      `Day resets now follow this device: ${browserTimeZone}. Weeks still open on ${getWeekStartLabel(weekStartsOnDraft)}.`,
+    );
   }
 
   async function handleSignOut() {
@@ -154,7 +168,7 @@ export function AccountPanel() {
 
       <form
         className="mt-4 rounded-[1.45rem] border border-white/10 bg-black/20 px-4 py-4"
-        onSubmit={handleTimeZoneSave}
+        onSubmit={handleCalendarSave}
       >
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
@@ -170,6 +184,9 @@ export function AccountPanel() {
               Right now that clock reads {formatCurrentTimeInTimeZone(effectiveTimeZone)}.
               When this timezone reaches midnight, Proof opens a new day.
             </p>
+            <p className="mt-2 text-sm leading-6 text-stone-400">
+              Weeks currently open on {getWeekStartLabel(onboarding.weekStartsOn)}.
+            </p>
           </div>
           <span className="self-start rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-stone-400">
             {syncStatus === "saving" ? "Saving" : usingDeviceTimeZone ? "Device-first" : "Account-set"}
@@ -183,7 +200,10 @@ export function AccountPanel() {
           <input
             type="text"
             value={timeZoneDraft}
-            onChange={(event) => setTimeZoneDraft(event.target.value)}
+            onChange={(event) => {
+              setTimeZoneDraft(event.target.value);
+              setUseDeviceTimeZoneDraft(false);
+            }}
             className={inputClassName}
             list="proof-time-zones"
             placeholder={browserTimeZone}
@@ -196,9 +216,28 @@ export function AccountPanel() {
           </datalist>
         </div>
 
+        <div className="mt-4 space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
+            Week starts on
+          </label>
+          <select
+            value={weekStartsOnDraft}
+            onChange={(event) =>
+              setWeekStartsOnDraft(event.target.value as typeof weekStartsOnDraft)
+            }
+            className={inputClassName}
+          >
+            {weekStartOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="mt-4 flex flex-col gap-3">
           <Button type="submit" variant="primary" size="md" className="w-full justify-center">
-            Save timezone
+            Save calendar settings
           </Button>
           <Button
             type="button"

@@ -592,7 +592,7 @@ async function buildBriefingContext(
       shiftIsoDate(window.weekStart, -1),
     ),
     loadPersistedMonthlyMission(identity, window.monthStart),
-    loadAnalyticsSnapshot(identity, window.date),
+    loadAnalyticsSnapshot(identity, window.date, window.weekStart),
   ]);
 
   const todayActivity =
