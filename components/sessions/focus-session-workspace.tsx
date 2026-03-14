@@ -3,14 +3,12 @@
 import {
   CircleCheckBig,
   CircleOff,
-  Clock3,
+  CopyPlus,
   Footprints,
   Headphones,
   MoonStar,
-  Play,
+  PencilLine,
   Shield,
-  Sparkles,
-  Target,
   Trash2,
   Zap,
 } from "lucide-react";
@@ -21,7 +19,6 @@ import { useOnboardingProfile } from "@/components/providers/onboarding-provider
 import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useFocusSessions } from "@/components/providers/focus-sessions-provider";
 import { Button } from "@/components/ui/button";
-import { formatPlanDate } from "@/lib/daily-plan";
 import {
   buildFocusSessionFromLoop,
   computeFocusSessionMetrics,
@@ -37,6 +34,7 @@ import {
   type ActiveFocusLoop,
   type ActivationChecklist,
   type FocusLoopPhase,
+  type FocusSession,
   type FocusSessionStatus,
   type WorkDepth,
 } from "@/lib/focus-session";
@@ -53,6 +51,16 @@ type BlockDraft = {
   pillar: string;
   plannedMinutes: string;
   workDepth: WorkDepth;
+};
+
+type SessionDraft = {
+  taskTitle: string;
+  pillar: string;
+  plannedMinutes: string;
+  actualMinutes: string;
+  workDepth: WorkDepth;
+  qualityRating: number;
+  closureNotes: string;
 };
 
 const checklistItems: Array<{
@@ -99,6 +107,26 @@ function getNextBlockDraft(loop: ActiveFocusLoop | null): BlockDraft {
     plannedMinutes: String(loop?.plannedMinutes ?? 75),
     workDepth: loop?.workDepth ?? "deep",
   };
+}
+
+function getSessionDraft(session: FocusSession): SessionDraft {
+  return {
+    taskTitle: session.taskTitle,
+    pillar: session.pillar,
+    plannedMinutes: String(session.plannedMinutes),
+    actualMinutes: String(session.actualMinutes),
+    workDepth: session.workDepth,
+    qualityRating: session.qualityRating,
+    closureNotes: session.closureNotes,
+  };
+}
+
+function formatCompactDate(planDate: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${planDate}T12:00:00`));
 }
 
 function getPhaseTitle(loop: ActiveFocusLoop) {
@@ -200,7 +228,7 @@ function CompactMetric({
 export function FocusSessionWorkspace() {
   const { today } = useCurrentDate();
   const { onboarding } = useOnboardingProfile();
-  const { dailyPlan } = useTodayPlan();
+  const { dailyPlan, setDailyPlan } = useTodayPlan();
   const {
     sessions,
     activeLoop,
@@ -220,6 +248,9 @@ export function FocusSessionWorkspace() {
     focusLoopPresets[2]?.id ?? focusLoopPresets[0]?.id ?? "monk-90",
   );
   const [formError, setFormError] = useState("");
+  const [editSessionId, setEditSessionId] = useState<string | null>(null);
+  const [sessionDraft, setSessionDraft] = useState<SessionDraft | null>(null);
+  const [sessionError, setSessionError] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
   const metrics = computeFocusSessionMetrics(sessions);
@@ -443,29 +474,166 @@ export function FocusSessionWorkspace() {
     );
   }
 
+  function toggleOneThing() {
+    setDailyPlan((current) => ({
+      ...current,
+      oneThingDone: current.oneThing.trim() ? !current.oneThingDone : false,
+      status:
+        !current.oneThingDone &&
+        current.topThree.every((item) => item.done && item.title.trim())
+          ? "completed"
+          : "active",
+    }));
+  }
+
+  function setOneThing(value: string) {
+    setDailyPlan((current) => ({
+      ...current,
+      oneThing: value,
+      oneThingDone: value.trim() ? current.oneThingDone : false,
+      status: current.oneThingDone && value.trim() ? current.status : "active",
+    }));
+  }
+
+  function updateOutcome(id: string, value: string) {
+    setDailyPlan((current) => ({
+      ...current,
+      topThree: current.topThree.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              title: value,
+              done: value.trim() ? item.done : false,
+            }
+          : item,
+      ),
+    }));
+  }
+
+  function toggleOutcome(id: string) {
+    setDailyPlan((current) => {
+      const nextTopThree = current.topThree.map((item) =>
+        item.id === id && item.title.trim()
+          ? {
+              ...item,
+              done: !item.done,
+            }
+          : item,
+      );
+      const isCompleted =
+        current.oneThingDone &&
+        nextTopThree.every((item) => item.done && item.title.trim());
+
+      return {
+        ...current,
+        topThree: nextTopThree,
+        status: isCompleted ? "completed" : "active",
+      };
+    });
+  }
+
+  function clearOutcome(id: string) {
+    setDailyPlan((current) => ({
+      ...current,
+      topThree: current.topThree.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              title: "",
+              done: false,
+            }
+          : item,
+      ),
+      status: "active",
+    }));
+  }
+
+  function loadTaskIntoWindow(taskTitle: string) {
+    if (!taskTitle.trim()) {
+      return;
+    }
+
+    if (activeLoop) {
+      setNextBlockDraft((current) => ({
+        ...current,
+        taskTitle,
+      }));
+      return;
+    }
+
+    setPlanDraft((current) => ({
+      ...current,
+      taskTitle,
+    }));
+  }
+
+  function startEditingSession(session: FocusSession) {
+    setEditSessionId(session.id);
+    setSessionDraft(getSessionDraft(session));
+    setSessionError("");
+  }
+
+  async function saveSessionEdits(session: FocusSession) {
+    if (!sessionDraft) {
+      return;
+    }
+
+    if (!sessionDraft.taskTitle.trim()) {
+      setSessionError("Give the block a task title.");
+      return;
+    }
+
+    const plannedMinutes = Number(sessionDraft.plannedMinutes);
+    const actualMinutes = Number(sessionDraft.actualMinutes);
+
+    if (!Number.isFinite(plannedMinutes) || plannedMinutes <= 0) {
+      setSessionError("Planned minutes must be greater than zero.");
+      return;
+    }
+
+    if (!Number.isFinite(actualMinutes) || actualMinutes < 0) {
+      setSessionError("Actual minutes must be zero or more.");
+      return;
+    }
+
+    setSessionError("");
+    await createSession({
+      ...session,
+      taskTitle: sessionDraft.taskTitle,
+      pillar: sessionDraft.pillar.trim() || pillars[0] || session.pillar,
+      plannedMinutes,
+      actualMinutes,
+      workDepth: sessionDraft.workDepth,
+      qualityRating: sessionDraft.qualityRating,
+      closureNotes: sessionDraft.closureNotes,
+    });
+    setEditSessionId(null);
+    setSessionDraft(null);
+  }
+
   const countdown = activeLoop ? getPhaseCountdown(activeLoop, now) : null;
   const activePhaseIndex = activeLoop ? phaseOrder.indexOf(activeLoop.phase) : -1;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.06fr_0.94fr]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
       <section className="space-y-6">
         <div className="surface-panel rounded-[2rem] p-6 sm:p-7">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+            <div className="min-w-0">
               <p className="surface-kicker">Focus window</p>
               <h1 className="mt-5 text-4xl text-stone-50 sm:text-[3.2rem]">
                 {activeLoop ? "Protect the window." : "Open one clean window."}
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-400">
+              <p className="mt-4 max-w-xl text-sm leading-7 text-stone-400">
                 {activeLoop
                   ? "Preload once. Then work, break, and work again without reopening the whole ritual."
                   : "One preload at the start, then repeated work and phone-free breaks until you end the window."}
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               <CompactMetric
                 label="Today"
-                value={formatPlanDate(today)}
+                value={formatCompactDate(today)}
               />
               <CompactMetric
                 label="Blocks"
@@ -501,7 +669,7 @@ export function FocusSessionWorkspace() {
               ))}
             </div>
 
-            <div className="mt-6 grid gap-5 xl:grid-cols-[1.06fr_0.94fr]">
+            <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)]">
               <div className="space-y-5">
                 {taskSuggestions.length > 0 ? (
                   <div className="space-y-2">
@@ -699,18 +867,21 @@ export function FocusSessionWorkspace() {
                         1
                       </p>
                       <p className="mt-2 text-sm text-stone-100">Preload once</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">Silence first.</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-3">
                       <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
                         2
                       </p>
                       <p className="mt-2 text-sm text-stone-100">Block + break</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">One task at a time.</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-3">
                       <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
                         3
                       </p>
                       <p className="mt-2 text-sm text-stone-100">Repeat until end</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">No phone between rounds.</p>
                     </div>
                   </div>
                 </div>
@@ -1152,44 +1323,6 @@ export function FocusSessionWorkspace() {
                     </div>
                   </div>
                 </div>
-
-                <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                    Saved blocks
-                  </p>
-                  {sessions.length === 0 ? (
-                    <p className="mt-4 text-sm leading-7 text-stone-400">
-                      Nothing saved yet.
-                    </p>
-                  ) : (
-                    <div className="mt-4 space-y-3">
-                      {sessions.slice(0, 8).map((session) => (
-                        <div
-                          key={session.id}
-                          className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-stone-100">
-                                {session.taskTitle}
-                              </p>
-                              <p className="mt-1 text-sm text-stone-400">
-                                {session.pillar} • {session.workDepth === "deep" ? "Deep" : "Shallow"} • {formatMinutes(session.actualMinutes)} • Q {session.qualityRating}/5
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => void deleteSession(session.id)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/20 text-stone-400 transition hover:bg-white/[0.06] hover:text-stone-100"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -1198,9 +1331,25 @@ export function FocusSessionWorkspace() {
 
       <aside className="space-y-6">
         <div className="surface-panel rounded-[2rem] p-6 sm:p-7">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-            Today
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Today
+              </p>
+              <p className="mt-2 text-sm leading-6 text-stone-400">
+                Your window should pull from today&apos;s real priorities, not a separate plan.
+              </p>
+            </div>
+            <div className="rounded-[1.2rem] border border-white/8 bg-black/20 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Sync
+              </p>
+              <p className="mt-2 text-sm leading-6 text-stone-300">
+                {hasLoaded ? syncMessage : "Loading focus window..."}
+              </p>
+            </div>
+          </div>
+
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <CompactMetric
               label="Completed"
@@ -1213,40 +1362,358 @@ export function FocusSessionWorkspace() {
               detail="Average"
             />
           </div>
-          <div className="mt-4 rounded-[1.5rem] border border-white/8 bg-black/20 px-4 py-4">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-              Sync
-            </p>
-            <p className="mt-2 text-sm leading-6 text-stone-300">
-              {hasLoaded ? syncMessage : "Loading focus window..."}
-            </p>
-          </div>
         </div>
 
         <div className="surface-panel rounded-[2rem] p-6 sm:p-7">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-            Today&apos;s leverage
-          </p>
-          <div className="mt-4 space-y-3">
-            {[dailyPlan.oneThing, ...dailyPlan.topThree.map((item) => item.title)]
-              .map((item) => item.trim())
-              .filter(Boolean)
-              .slice(0, 4)
-              .map((item) => (
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Saved blocks
+              </p>
+              <h3 className="mt-2 text-3xl text-stone-50">History you can actually edit.</h3>
+            </div>
+            <div className="rounded-[1.25rem] border border-white/8 bg-black/20 px-4 py-3 text-right">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Today
+              </p>
+              <p className="mt-2 text-xl font-semibold text-stone-50">{sessions.length}</p>
+            </div>
+          </div>
+
+          {sessions.length === 0 ? (
+            <p className="mt-4 text-sm leading-7 text-stone-400">
+              Finish one block and it will show up here with edit, reuse, and delete controls.
+            </p>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {sessions.map((session) => (
                 <div
-                  key={item}
-                  className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-3"
+                  key={session.id}
+                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
                 >
-                  <p className="text-sm leading-6 text-stone-200">{item}</p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-stone-100">
+                        {session.taskTitle}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-stone-400">
+                        {session.pillar} • {session.workDepth === "deep" ? "Deep" : "Shallow"} • {formatMinutes(session.actualMinutes)} • Q {session.qualityRating}/5
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => loadTaskIntoWindow(session.taskTitle)}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                      >
+                        <CopyPlus className="h-4 w-4" />
+                        Reuse
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          editSessionId === session.id
+                            ? (setEditSessionId(null), setSessionDraft(null), setSessionError(""))
+                            : startEditingSession(session)
+                        }
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                      >
+                        <PencilLine className="h-4 w-4" />
+                        {editSessionId === session.id ? "Close" : "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deleteSession(session.id)}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {editSessionId === session.id && sessionDraft ? (
+                    <div className="mt-4 space-y-4 rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Task
+                          </label>
+                          <input
+                            className={inputClassName}
+                            value={sessionDraft.taskTitle}
+                            onChange={(event) =>
+                              setSessionDraft((current) =>
+                                current
+                                  ? { ...current, taskTitle: event.target.value }
+                                  : current,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Pillar
+                          </label>
+                          <select
+                            className={inputClassName}
+                            value={sessionDraft.pillar}
+                            onChange={(event) =>
+                              setSessionDraft((current) =>
+                                current ? { ...current, pillar: event.target.value } : current,
+                              )
+                            }
+                          >
+                            {pillars.map((pillar) => (
+                              <option key={pillar} value={pillar}>
+                                {pillar}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Depth
+                          </label>
+                          <div className="flex gap-2">
+                            {(["deep", "shallow"] as const).map((depth) => (
+                              <button
+                                key={depth}
+                                type="button"
+                                onClick={() =>
+                                  setSessionDraft((current) =>
+                                    current ? { ...current, workDepth: depth } : current,
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-full border px-4 py-2 text-sm transition",
+                                  sessionDraft.workDepth === depth
+                                    ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
+                                    : "border-white/10 bg-white/[0.03] text-stone-300",
+                                )}
+                              >
+                                {depth === "deep" ? "Deep" : "Shallow"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Planned
+                          </label>
+                          <input
+                            className={inputClassName}
+                            value={sessionDraft.plannedMinutes}
+                            onChange={(event) =>
+                              setSessionDraft((current) =>
+                                current
+                                  ? { ...current, plannedMinutes: event.target.value }
+                                  : current,
+                              )
+                            }
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Actual
+                          </label>
+                          <input
+                            className={inputClassName}
+                            value={sessionDraft.actualMinutes}
+                            onChange={(event) =>
+                              setSessionDraft((current) =>
+                                current
+                                  ? { ...current, actualMinutes: event.target.value }
+                                  : current,
+                              )
+                            }
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Notes
+                          </label>
+                          <textarea
+                            className={textAreaClassName}
+                            value={sessionDraft.closureNotes}
+                            onChange={(event) =>
+                              setSessionDraft((current) =>
+                                current
+                                  ? { ...current, closureNotes: event.target.value }
+                                  : current,
+                              )
+                            }
+                            placeholder="What actually happened?"
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                            Quality
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <button
+                                key={rating}
+                                type="button"
+                                onClick={() =>
+                                  setSessionDraft((current) =>
+                                    current ? { ...current, qualityRating: rating } : current,
+                                  )
+                                }
+                                className={cn(
+                                  "rounded-full border px-3 py-2 text-sm transition",
+                                  sessionDraft.qualityRating === rating
+                                    ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
+                                    : "border-white/10 bg-white/[0.03] text-stone-300",
+                                )}
+                              >
+                                {rating}/5
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {sessionError ? (
+                        <div className="rounded-[1.2rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                          {sessionError}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap gap-3">
+                        <Button size="lg" onClick={() => void saveSessionEdits(session)}>
+                          Save changes
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="lg"
+                          onClick={() => {
+                            setEditSessionId(null);
+                            setSessionDraft(null);
+                            setSessionError("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
-            {dailyPlan.oneThing.trim() || dailyPlan.topThree.some((item) => item.title.trim())
-              ? null
-              : (
-                <p className="text-sm leading-7 text-stone-400">
-                  Choose the one thing on Today first if you want the window to pull from it.
-                </p>
-              )}
+            </div>
+          )}
+        </div>
+
+        <div className="surface-panel rounded-[2rem] p-6 sm:p-7">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                Today&apos;s tasks
+              </p>
+              <h3 className="mt-2 text-3xl text-stone-50">Edit the source, not a copy.</h3>
+            </div>
+            <p className="text-sm leading-6 text-stone-400">These feed the focus window.</p>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={toggleOneThing}
+                  className={cn(
+                    "mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border transition",
+                    dailyPlan.oneThingDone
+                      ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100"
+                      : "border-white/10 bg-black/20 text-transparent",
+                  )}
+                >
+                  •
+                </button>
+                <div className="flex-1 space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                    One thing
+                  </p>
+                  <input
+                    className={inputClassName}
+                    value={dailyPlan.oneThing}
+                    onChange={(event) => setOneThing(event.target.value)}
+                    placeholder="The task that makes the day count."
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => loadTaskIntoWindow(dailyPlan.oneThing)}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                >
+                  <CopyPlus className="h-4 w-4" />
+                  Use in window
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOneThing("")}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {dailyPlan.topThree.map((item, index) => (
+              <div
+                key={item.id}
+                className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleOutcome(item.id)}
+                    className={cn(
+                      "mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full border transition",
+                      item.done
+                        ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100"
+                        : "border-white/10 bg-black/20 text-transparent",
+                    )}
+                  >
+                    •
+                  </button>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                      Outcome {index + 1}
+                    </p>
+                    <input
+                      className={inputClassName}
+                      value={item.title}
+                      onChange={(event) => updateOutcome(item.id, event.target.value)}
+                      placeholder="Define a concrete outcome."
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadTaskIntoWindow(item.title)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                  >
+                    <CopyPlus className="h-4 w-4" />
+                    Use in window
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => clearOutcome(item.id)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300 transition hover:bg-white/[0.06] hover:text-stone-100"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </aside>

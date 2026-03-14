@@ -236,7 +236,10 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
 
   async function createSession(session: FocusSession) {
     const normalized = normalizeFocusSession(session, sessionDate);
-    const nextSessions = normalizeFocusSessions([normalized, ...sessions], sessionDate);
+    const nextSessions = normalizeFocusSessions(
+      [normalized, ...sessions.filter((item) => item.id !== normalized.id)],
+      sessionDate,
+    );
     setSessions(nextSessions);
     writeLocalFocusSessions(sessionDate, nextSessions);
     setSyncSource("local");

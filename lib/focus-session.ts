@@ -292,11 +292,21 @@ export function normalizeFocusSessions(
   sessionDate: string,
 ) {
   const list = Array.isArray(value) ? value : [];
+  const byId = new Map<string, FocusSession>();
 
-  return list
-    .map((item) => normalizeFocusSession(item, sessionDate))
-    .filter((item) => item.taskTitle.trim())
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  for (const item of list.map((entry) => normalizeFocusSession(entry, sessionDate))) {
+    if (!item.taskTitle.trim()) {
+      continue;
+    }
+
+    const existing = byId.get(item.id);
+
+    if (!existing || existing.createdAt < item.createdAt) {
+      byId.set(item.id, item);
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function getFocusSessionsStorageKey(sessionDate: string) {
