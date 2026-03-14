@@ -65,12 +65,12 @@ const baseSteps = [
   },
   {
     id: "sessions",
-    label: "Log one focus block",
-    shortLabel: "Focus",
+    label: "Run one focus loop",
+    shortLabel: "Loop",
     description:
-      "Capture one real work block as evidence. Honest session data matters more than perfect planning.",
+      "Complete one preload-to-recovery loop so the app has real evidence of how you work when it counts.",
     href: "/sessions",
-    actionLabel: "Open Sessions",
+    actionLabel: "Open Focus Loop",
   },
   {
     id: "review",

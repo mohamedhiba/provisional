@@ -29,8 +29,8 @@ export const siteConfig = {
     },
     {
       href: "/sessions",
-      label: "Sessions",
-      shortLabel: "Focus",
+      label: "Focus Loop",
+      shortLabel: "Loop",
       icon: Activity,
     },
     {

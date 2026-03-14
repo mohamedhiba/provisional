@@ -93,7 +93,7 @@ function buildEvidence(context: BriefingContext) {
     },
     {
       label: "Today",
-      value: `${context.today.deepMinutes} deep minutes and ${context.today.sessionCount} logged session${context.today.sessionCount === 1 ? "" : "s"}`,
+      value: `${context.today.deepMinutes} deep minutes and ${context.today.sessionCount} completed loop${context.today.sessionCount === 1 ? "" : "s"}`,
     },
     {
       label: "This week",
@@ -132,7 +132,7 @@ function buildFallbackBriefing(
   } else if (context.week.reviewCompletionRate < 60) {
     actions.push("Close the day honestly tonight so the week stops slipping through open loops.");
   } else {
-    actions.push("Keep the standard tight and make the next logged session count as proof.");
+    actions.push("Keep the standard tight and make the next completed loop count as proof.");
   }
 
   if (context.month.daysRemaining <= 5 || context.month.progressPercent < 45) {
@@ -187,7 +187,7 @@ function buildFallbackBriefing(
   const accountability = driftSignal
     ? `Accountability check: ${driftSignal}. Fix that pattern with your next block, not with a better explanation.`
     : context.yesterday.reviewCompleted
-      ? `Accountability check: yesterday you closed the loop. Match that honesty again tonight and let the next session earn its place.`
+      ? `Accountability check: yesterday you closed the loop. Match that honesty again tonight and let the next block earn its place.`
       : "Accountability check: yesterday stayed too easy to escape. Close the day tonight so effort stops disappearing without judgment.";
 
   return {

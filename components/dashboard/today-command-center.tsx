@@ -25,7 +25,12 @@ import {
   getDailyJudgmentLine,
   getDailyScoreLabel,
 } from "@/lib/daily-score";
-import { computeFocusSessionMetrics, formatMinutes } from "@/lib/focus-session";
+import {
+  computeFocusSessionMetrics,
+  formatMinutes,
+  formatTimer,
+  getElapsedSeconds,
+} from "@/lib/focus-session";
 
 const inputClassName =
   "w-full rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-stone-100 outline-none transition focus:border-amber-300/40";
@@ -34,7 +39,7 @@ export function TodayCommandCenter() {
   const { onboarding } = useOnboardingProfile();
   const { timeZone, isDeviceTimeZone } = useCurrentDate();
   const { dailyPlan, setDailyPlan, hasLoaded, syncMessage } = useTodayPlan();
-  const { sessions } = useFocusSessions();
+  const { sessions, activeLoop } = useFocusSessions();
   const { review } = useDailyReview();
   const { snapshot } = useAnalytics();
   const score = computeDailyScore({
@@ -53,6 +58,9 @@ export function TodayCommandCenter() {
     reviewCompleted: Boolean(review),
   });
   const topDriftAlert = snapshot.driftAlerts[0] ?? null;
+  const liveLoopElapsed = activeLoop
+    ? getElapsedSeconds(activeLoop.focusStartedAt ?? activeLoop.phaseStartedAt)
+    : 0;
 
   function setOneThing(value: string) {
     setDailyPlan((current) => ({
@@ -305,44 +313,102 @@ export function TodayCommandCenter() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                  Focus sessions
+                  Focus loop
                 </p>
                 <h3 className="mt-2 text-xl font-semibold tracking-tight text-stone-50">
-                  Evidence of real work
+                  Build real work on purpose
                 </h3>
               </div>
               <Link
                 href="/sessions"
                 className={buttonStyles({ variant: "primary", size: "md" })}
               >
-                Open logger
+                {activeLoop ? "Resume loop" : "Open focus loop"}
               </Link>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <MetricCard
-                label="Sessions"
-                value={`${sessionMetrics.totalSessions}`}
-                detail="Logged today"
+                label={activeLoop ? "Live phase" : "Loops"}
+                value={
+                  activeLoop
+                    ? activeLoop.phase === "focus"
+                      ? "In block"
+                      : activeLoop.phase === "preload"
+                        ? "Preload"
+                        : activeLoop.phase === "activation"
+                          ? "Activation"
+                          : "Recovery"
+                    : `${sessionMetrics.totalSessions}`
+                }
+                detail={
+                  activeLoop
+                    ? activeLoop.taskTitle
+                    : "Completed loops saved today"
+                }
               />
               <MetricCard
                 label="Deep work"
-                value={formatMinutes(sessionMetrics.deepMinutes)}
-                detail="High-focus minutes"
+                value={
+                  activeLoop && activeLoop.phase === "focus"
+                    ? formatTimer(liveLoopElapsed)
+                    : formatMinutes(sessionMetrics.deepMinutes)
+                }
+                detail={
+                  activeLoop && activeLoop.phase === "focus"
+                    ? activeLoop.focusMode === "timed"
+                      ? `${formatMinutes(activeLoop.plannedMinutes)} target`
+                      : "Open-ended focus loop"
+                    : "High-focus minutes logged today"
+                }
               />
               <MetricCard
-                label="Quality"
-                value={`${sessionMetrics.averageQuality}/5`}
-                detail="Average session rating"
+                label={activeLoop ? "Distractions" : "Quality"}
+                value={
+                  activeLoop
+                    ? `${activeLoop.distractionCount}`
+                    : `${sessionMetrics.averageQuality}/5`
+                }
+                detail={
+                  activeLoop
+                    ? "Interruptions logged in the live loop"
+                    : "Average loop rating"
+                }
               />
             </div>
-            {sessions.length === 0 ? (
+            {activeLoop ? (
+              <div className="mt-6 rounded-[1.5rem] border border-amber-300/15 bg-amber-300/8 px-4 py-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-stone-100">
+                      A focus loop is live right now.
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-stone-300">
+                      {activeLoop.phase === "focus"
+                        ? "Protect the block until it is cleanly closed."
+                        : activeLoop.phase === "recovery"
+                          ? "Finish the exit protocol and save the loop."
+                          : "Finish the setup so the block starts under pressure instead of drift."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-stone-200">
+                    <Clock3 className="h-4 w-4 text-amber-200" />
+                    <span>{activeLoop.taskTitle}</span>
+                    <span>
+                      {activeLoop.focusMode === "timed"
+                        ? `${formatMinutes(activeLoop.plannedMinutes)} target`
+                        : "Open-ended"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : sessions.length === 0 ? (
               <div className="mt-6 rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-4 py-5">
                 <p className="text-sm font-medium text-stone-100">
-                  No work sessions logged yet.
+                  No completed loops yet.
                 </p>
                 <p className="mt-2 text-sm leading-6 text-stone-400">
-                  Use the logger when you finish a real block of work so the day is
-                  judged by evidence, not intent.
+                  Start the focus loop when you are ready to preload, lock in, and
+                  capture one real block instead of just planning one.
                 </p>
               </div>
             ) : (
@@ -357,8 +423,7 @@ export function TodayCommandCenter() {
                         {session.taskTitle}
                       </p>
                       <p className="mt-1 text-sm text-stone-400">
-                        Planned {formatMinutes(session.plannedMinutes)} • Actual{" "}
-                        {formatMinutes(session.actualMinutes)}
+                        {formatMinutes(session.actualMinutes)} focus • {formatMinutes(session.preloadMinutes)} preload • {session.recoveryLabel || "Reset recorded"}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-stone-300">
@@ -366,6 +431,7 @@ export function TodayCommandCenter() {
                       <span>
                         {session.workDepth === "deep" ? "Deep" : "Shallow"}
                       </span>
+                      <span>{session.distractionCount} distraction{session.distractionCount === 1 ? "" : "s"}</span>
                       <span>Quality {session.qualityRating}/5</span>
                     </div>
                   </div>

@@ -110,6 +110,15 @@ type FocusSessionTransferRow = {
   actual_minutes: number | null;
   quality_rating: number | null;
   work_depth: string | null;
+  preload_minutes: number | null;
+  recovery_minutes: number | null;
+  focus_mode: string | null;
+  activation_label: string | null;
+  environment_label: string | null;
+  recovery_label: string | null;
+  distraction_count: number | null;
+  session_status: string | null;
+  closure_notes: string | null;
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
@@ -474,7 +483,7 @@ async function loadFocusSessionsByProfile(profileId: string) {
   const { data, error } = await supabase
     .from("focus_sessions")
     .select(
-      "id, session_date, task_title, planned_minutes, actual_minutes, quality_rating, work_depth, started_at, ended_at, created_at, pillar_id",
+      "id, session_date, task_title, planned_minutes, actual_minutes, quality_rating, work_depth, preload_minutes, recovery_minutes, focus_mode, activation_label, environment_label, recovery_label, distraction_count, session_status, closure_notes, started_at, ended_at, created_at, pillar_id",
     )
     .eq("profile_id", profileId);
 
@@ -515,6 +524,15 @@ async function moveFocusSessions(input: {
       actual_minutes: row.actual_minutes,
       quality_rating: row.quality_rating,
       work_depth: row.work_depth,
+      preload_minutes: row.preload_minutes,
+      recovery_minutes: row.recovery_minutes,
+      focus_mode: row.focus_mode,
+      activation_label: row.activation_label,
+      environment_label: row.environment_label,
+      recovery_label: row.recovery_label,
+      distraction_count: row.distraction_count,
+      session_status: row.session_status,
+      closure_notes: row.closure_notes,
       started_at: row.started_at,
       ended_at: row.ended_at,
       created_at: row.created_at,

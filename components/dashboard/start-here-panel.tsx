@@ -39,7 +39,7 @@ export function StartHerePanel() {
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-300">
             Define the month, pick today&apos;s highest-leverage task, log one honest
-            work block, and close the day. After that, the pressure system becomes real.
+            focus loop, and close the day. After that, the pressure system becomes real.
           </p>
         </div>
         <Link
@@ -54,7 +54,7 @@ export function StartHerePanel() {
         {[
           ["1", "Set the month", "Define the focus theme and 1-3 measurable targets."],
           ["2", "Choose the one thing", "Make the hardest priority impossible to ignore."],
-          ["3", "Log a focus block", "Capture at least one real session as proof."],
+          ["3", "Run a focus loop", "Preload, lock in, do the block, and save the proof."],
           ["4", "Close the day", "Finish with a nightly review so the score counts."],
         ].map(([step, title, body]) => (
           <div key={step} className="surface-panel-soft rounded-[1.5rem] p-5">

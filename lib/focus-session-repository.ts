@@ -21,6 +21,17 @@ type SessionRow = {
   actual_minutes: number | null;
   quality_rating: number | null;
   work_depth: string | null;
+  preload_minutes: number | null;
+  recovery_minutes: number | null;
+  focus_mode: string | null;
+  activation_label: string | null;
+  environment_label: string | null;
+  recovery_label: string | null;
+  distraction_count: number | null;
+  session_status: string | null;
+  closure_notes: string | null;
+  started_at: string | null;
+  ended_at: string | null;
   created_at: string;
   pillar_id: string | null;
 };
@@ -97,7 +108,7 @@ export async function loadPersistedFocusSessions(
     supabase
       .from("focus_sessions")
       .select(
-        "id, session_date, task_title, planned_minutes, actual_minutes, quality_rating, work_depth, created_at, pillar_id",
+        "id, session_date, task_title, planned_minutes, actual_minutes, quality_rating, work_depth, preload_minutes, recovery_minutes, focus_mode, activation_label, environment_label, recovery_label, distraction_count, session_status, closure_notes, started_at, ended_at, created_at, pillar_id",
       )
       .eq("profile_id", profile.id)
       .eq("session_date", sessionDate)
@@ -118,6 +129,17 @@ export async function loadPersistedFocusSessions(
       actualMinutes: session.actual_minutes ?? session.planned_minutes,
       qualityRating: session.quality_rating ?? 4,
       workDepth: session.work_depth === "shallow" ? "shallow" : "deep",
+      preloadMinutes: session.preload_minutes ?? 0,
+      recoveryMinutes: session.recovery_minutes ?? 10,
+      focusMode: session.focus_mode === "open-ended" ? "open-ended" : "timed",
+      activationLabel: session.activation_label ?? "",
+      environmentLabel: session.environment_label ?? "",
+      recoveryLabel: session.recovery_label ?? "",
+      distractionCount: session.distraction_count ?? 0,
+      sessionStatus: session.session_status === "ended-early" ? "ended-early" : "completed",
+      closureNotes: session.closure_notes ?? "",
+      startedAt: session.started_at,
+      endedAt: session.ended_at,
       createdAt: session.created_at,
       pillar: session.pillar_id ? (pillarMap.get(session.pillar_id) ?? "") : "",
     })),
@@ -224,6 +246,17 @@ export async function upsertPersistedFocusSessions(
       actual_minutes: session.actualMinutes,
       quality_rating: session.qualityRating,
       work_depth: session.workDepth,
+      preload_minutes: session.preloadMinutes,
+      recovery_minutes: session.recoveryMinutes,
+      focus_mode: session.focusMode,
+      activation_label: session.activationLabel,
+      environment_label: session.environmentLabel,
+      recovery_label: session.recoveryLabel,
+      distraction_count: session.distractionCount,
+      session_status: session.sessionStatus,
+      closure_notes: session.closureNotes,
+      started_at: session.startedAt,
+      ended_at: session.endedAt,
       created_at: session.createdAt,
     })),
     {

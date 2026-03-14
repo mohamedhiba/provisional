@@ -11,11 +11,16 @@ import {
 import { useCurrentDate } from "@/components/providers/current-date-provider";
 import { useOnboardingProfile } from "@/components/providers/onboarding-provider";
 import {
+  clearLocalActiveFocusLoop,
   clearLocalFocusSessions,
+  normalizeActiveFocusLoop,
   normalizeFocusSession,
   normalizeFocusSessions,
+  readLocalActiveFocusLoop,
   readLocalFocusSessions,
+  writeLocalActiveFocusLoop,
   writeLocalFocusSessions,
+  type ActiveFocusLoop,
   type FocusSession,
 } from "@/lib/focus-session";
 import {
@@ -32,6 +37,7 @@ type ApiPayload = {
 
 type FocusSessionsContextValue = {
   sessions: FocusSession[];
+  activeLoop: ActiveFocusLoop | null;
   hasLoaded: boolean;
   syncStatus: OnboardingSyncStatus;
   syncSource: OnboardingPersistenceSource;
@@ -39,6 +45,13 @@ type FocusSessionsContextValue = {
   syncMessage: string;
   createSession: (session: FocusSession) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
+  setActiveLoop: (
+    value:
+      | ActiveFocusLoop
+      | null
+      | ((current: ActiveFocusLoop | null) => ActiveFocusLoop | null),
+  ) => void;
+  clearActiveLoop: () => void;
 };
 
 const FocusSessionsContext = createContext<FocusSessionsContextValue | null>(null);
@@ -59,8 +72,7 @@ async function requestFocusSessions(
 
   const response = await fetch(`/api/focus-sessions?${query.toString()}`, {
     method,
-    headers:
-      method === "POST" ? { "Content-Type": "application/json" } : undefined,
+    headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
     body: method === "POST" ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
@@ -76,12 +88,18 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
   const { onboarding } = useOnboardingProfile();
   const { today: sessionDate, timeZone } = useCurrentDate();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
+  const [activeLoop, setActiveLoopState] = useState<ActiveFocusLoop | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<OnboardingSyncStatus>("booting");
   const [syncSource, setSyncSource] =
     useState<OnboardingPersistenceSource>("none");
   const [remoteEnabled, setRemoteEnabled] = useState(false);
   const [syncMessage, setSyncMessage] = useState("Loading focus sessions...");
+
+  useEffect(() => {
+    const localLoop = readLocalActiveFocusLoop(sessionDate);
+    setActiveLoopState(localLoop);
+  }, [sessionDate]);
 
   useEffect(() => {
     let active = true;
@@ -94,7 +112,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       setSyncMessage("Loaded from this device. Remote sync is checking now.");
     } else {
       setSyncStatus("ready");
-      setSyncMessage("Log the first real work block of the day.");
+      setSyncMessage("Run the first focus loop when the day needs proof.");
     }
 
     setHasLoaded(true);
@@ -118,8 +136,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
           );
           setSyncMessage(
             payload.source === "supabase"
-              ? "Sessions loaded from Supabase."
-              : "Sessions loaded from this device.",
+              ? "Focus history loaded from Supabase."
+              : "Focus history loaded from this device.",
           );
           return;
         }
@@ -153,8 +171,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
           );
           setSyncMessage(
             syncPayload.source === "supabase"
-              ? "Local sessions synced to Supabase."
-              : "Local sessions are available on this device.",
+              ? "Local focus history synced to Supabase."
+              : "Local focus history is available on this device.",
           );
           return;
         }
@@ -163,7 +181,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         setSyncStatus(payload.remoteEnabled ? "ready" : "saved-local");
         setSyncMessage(
           payload.remoteEnabled
-            ? "Supabase is connected. The next logged session will persist there."
+            ? "Supabase is connected. Completed focus loops will persist there."
             : "Supabase is not configured yet. Local persistence is active.",
         );
       } catch {
@@ -177,7 +195,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         setSyncMessage(
           localSessions.length > 0
             ? "Using local persistence because remote sync is unavailable."
-            : "Remote sync failed. Local persistence will take over when you log a session.",
+            : "Remote sync failed. Local persistence will take over when a loop finishes.",
         );
       }
     }
@@ -189,6 +207,33 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     };
   }, [onboarding.name, onboarding.tone, sessionDate, timeZone]);
 
+  function setActiveLoop(
+    value:
+      | ActiveFocusLoop
+      | null
+      | ((current: ActiveFocusLoop | null) => ActiveFocusLoop | null),
+  ) {
+    setActiveLoopState((current) => {
+      const resolved =
+        typeof value === "function"
+          ? value(current)
+          : normalizeActiveFocusLoop(value, sessionDate);
+
+      if (resolved) {
+        writeLocalActiveFocusLoop(sessionDate, resolved);
+      } else {
+        clearLocalActiveFocusLoop(sessionDate);
+      }
+
+      return resolved;
+    });
+  }
+
+  function clearActiveLoop() {
+    clearLocalActiveFocusLoop(sessionDate);
+    setActiveLoopState(null);
+  }
+
   async function createSession(session: FocusSession) {
     const normalized = normalizeFocusSession(session, sessionDate);
     const nextSessions = normalizeFocusSessions([normalized, ...sessions], sessionDate);
@@ -198,8 +243,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     setSyncStatus("saving");
     setSyncMessage(
       remoteEnabled
-        ? "Saving session and syncing to Supabase..."
-        : "Saving session on this device...",
+        ? "Saving completed focus loop and syncing to Supabase..."
+        : "Saving completed focus loop on this device...",
     );
 
     try {
@@ -218,14 +263,14 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       );
       setSyncMessage(
         payload.source === "supabase"
-          ? "Session saved to Supabase."
-          : payload.message ?? "Session saved on this device.",
+          ? "Focus loop saved to Supabase."
+          : payload.message ?? "Focus loop saved on this device.",
       );
     } catch {
       setSyncSource("local");
       setSyncStatus("error");
       setSyncMessage(
-        "Remote save failed. The session is still saved on this device.",
+        "Remote save failed. The completed loop is still saved on this device.",
       );
     }
   }
@@ -238,18 +283,24 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     setSyncStatus("saving");
     setSyncMessage(
       remoteEnabled
-        ? "Removing session and syncing to Supabase..."
-        : "Removing session on this device...",
+        ? "Removing loop and syncing to Supabase..."
+        : "Removing loop on this device...",
     );
 
     if (!remoteEnabled) {
       setSyncStatus("saved-local");
-      setSyncMessage("Session removed from this device.");
+      setSyncMessage("Focus loop removed from this device.");
       return;
     }
 
     try {
-      const payload = await requestFocusSessions("DELETE", sessionDate, timeZone, undefined, id);
+      const payload = await requestFocusSessions(
+        "DELETE",
+        sessionDate,
+        timeZone,
+        undefined,
+        id,
+      );
       setRemoteEnabled(payload.remoteEnabled);
       setSyncSource(payload.source);
       setSyncStatus(
@@ -257,14 +308,14 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       );
       setSyncMessage(
         payload.source === "supabase"
-          ? "Session removed from Supabase."
-          : payload.message ?? "Session removed on this device.",
+          ? "Focus loop removed from Supabase."
+          : payload.message ?? "Focus loop removed on this device.",
       );
     } catch {
       setSyncSource("local");
       setSyncStatus("error");
       setSyncMessage(
-        "Remote delete failed. The session is still removed locally.",
+        "Remote delete failed. The focus loop is still removed locally.",
       );
     }
   }
@@ -273,6 +324,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     <FocusSessionsContext.Provider
       value={{
         sessions,
+        activeLoop,
         hasLoaded,
         syncStatus,
         syncSource,
@@ -280,6 +332,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         syncMessage,
         createSession,
         deleteSession,
+        setActiveLoop,
+        clearActiveLoop,
       }}
     >
       {children}
