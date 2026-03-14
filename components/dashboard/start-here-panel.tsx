@@ -38,8 +38,8 @@ export function StartHerePanel() {
             The app gets sharper once the first loop is complete.
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-300">
-            Define the month, pick today&apos;s highest-leverage task, log one honest
-            focus loop, and close the day. After that, the pressure system becomes real.
+            Define the month, pick today&apos;s highest-leverage task, open one honest
+            focus window, and close the day. After that, the pressure system becomes real.
           </p>
         </div>
         <Link
@@ -54,7 +54,7 @@ export function StartHerePanel() {
         {[
           ["1", "Set the month", "Define the focus theme and 1-3 measurable targets."],
           ["2", "Choose the one thing", "Make the hardest priority impossible to ignore."],
-          ["3", "Run a focus loop", "Preload, lock in, do the block, and save the proof."],
+          ["3", "Open a focus window", "Preload once, run a real block, and save the proof."],
           ["4", "Close the day", "Finish with a nightly review so the score counts."],
         ].map(([step, title, body]) => (
           <div key={step} className="surface-panel-soft rounded-[1.5rem] p-5">

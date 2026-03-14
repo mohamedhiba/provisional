@@ -94,7 +94,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
   const [syncSource, setSyncSource] =
     useState<OnboardingPersistenceSource>("none");
   const [remoteEnabled, setRemoteEnabled] = useState(false);
-  const [syncMessage, setSyncMessage] = useState("Loading focus sessions...");
+  const [syncMessage, setSyncMessage] = useState("Loading focus window...");
 
   useEffect(() => {
     const localLoop = readLocalActiveFocusLoop(sessionDate);
@@ -112,7 +112,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       setSyncMessage("Loaded from this device. Remote sync is checking now.");
     } else {
       setSyncStatus("ready");
-      setSyncMessage("Run the first focus loop when the day needs proof.");
+      setSyncMessage("Open the first focus window when the day needs proof.");
     }
 
     setHasLoaded(true);
@@ -181,7 +181,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         setSyncStatus(payload.remoteEnabled ? "ready" : "saved-local");
         setSyncMessage(
           payload.remoteEnabled
-            ? "Supabase is connected. Completed focus loops will persist there."
+            ? "Supabase is connected. Saved blocks will persist there."
             : "Supabase is not configured yet. Local persistence is active.",
         );
       } catch {
@@ -195,7 +195,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
         setSyncMessage(
           localSessions.length > 0
             ? "Using local persistence because remote sync is unavailable."
-            : "Remote sync failed. Local persistence will take over when a loop finishes.",
+            : "Remote sync failed. Local persistence will take over when a block finishes.",
         );
       }
     }
@@ -243,8 +243,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
     setSyncStatus("saving");
     setSyncMessage(
       remoteEnabled
-        ? "Saving completed focus loop and syncing to Supabase..."
-        : "Saving completed focus loop on this device...",
+        ? "Saving completed block and syncing to Supabase..."
+        : "Saving completed block on this device...",
     );
 
     try {
@@ -263,8 +263,8 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       );
       setSyncMessage(
         payload.source === "supabase"
-          ? "Focus loop saved to Supabase."
-          : payload.message ?? "Focus loop saved on this device.",
+          ? "Block saved to Supabase."
+          : payload.message ?? "Block saved on this device.",
       );
     } catch {
       setSyncSource("local");
@@ -289,7 +289,7 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
 
     if (!remoteEnabled) {
       setSyncStatus("saved-local");
-      setSyncMessage("Focus loop removed from this device.");
+      setSyncMessage("Block removed from this device.");
       return;
     }
 
@@ -308,14 +308,14 @@ export function FocusSessionsProvider({ children }: PropsWithChildren) {
       );
       setSyncMessage(
         payload.source === "supabase"
-          ? "Focus loop removed from Supabase."
-          : payload.message ?? "Focus loop removed on this device.",
+          ? "Block removed from Supabase."
+          : payload.message ?? "Block removed on this device.",
       );
     } catch {
       setSyncSource("local");
       setSyncStatus("error");
       setSyncMessage(
-        "Remote delete failed. The focus loop is still removed locally.",
+        "Remote delete failed. The block is still removed locally.",
       );
     }
   }

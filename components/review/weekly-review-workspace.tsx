@@ -171,7 +171,7 @@ export function WeeklyReviewWorkspace() {
           <MetricCard
             label="Deep work"
             value={formatHours(summary.deepWorkHours)}
-            detail={`${summary.sessionCount} focus loop${summary.sessionCount === 1 ? "" : "s"} completed.`}
+            detail={`${summary.sessionCount} focus block${summary.sessionCount === 1 ? "" : "s"} saved.`}
           />
           <MetricCard
             label="Top-task hit rate"

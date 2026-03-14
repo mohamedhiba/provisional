@@ -47,7 +47,7 @@ export function AnalyticsOverview() {
         <InfoCallout
           eyebrow="Analytics guide"
           title="The dashboard wakes up after a few honest days."
-          body="Start by setting the one thing, completing one focus loop, and closing the day with a review. Once that loop runs a few times, this page will show trends, alerts, and a real activity map instead of flat zeroes."
+          body="Start by setting the one thing, saving one real focus block, and closing the day with a review. Once that pattern runs a few times, this page will show trends, alerts, and a real activity map instead of flat zeroes."
           actionHref="/today"
           actionLabel="Run the first loop"
         />
@@ -67,7 +67,7 @@ export function AnalyticsOverview() {
         <MetricCard
           label="Deep work hours"
           value={`${summary.deepWorkHours.toFixed(1)}h`}
-          detail={`${summary.sessionCount} focus loop${summary.sessionCount === 1 ? "" : "s"} completed this week.`}
+          detail={`${summary.sessionCount} focus block${summary.sessionCount === 1 ? "" : "s"} saved this week.`}
         />
         <MetricCard
           label="Drift days"

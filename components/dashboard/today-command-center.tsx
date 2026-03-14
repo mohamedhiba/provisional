@@ -313,22 +313,22 @@ export function TodayCommandCenter() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-500">
-                  Focus loop
+                  Focus window
                 </p>
                 <h3 className="mt-2 text-xl font-semibold tracking-tight text-stone-50">
-                  Build real work on purpose
+                  Protect real work
                 </h3>
               </div>
               <Link
                 href="/sessions"
                 className={buttonStyles({ variant: "primary", size: "md" })}
               >
-                {activeLoop ? "Resume loop" : "Open focus loop"}
+                {activeLoop ? "Resume window" : "Open window"}
               </Link>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <MetricCard
-                label={activeLoop ? "Live phase" : "Loops"}
+                label={activeLoop ? "Window" : "Blocks"}
                 value={
                   activeLoop
                     ? activeLoop.phase === "focus"
@@ -343,7 +343,7 @@ export function TodayCommandCenter() {
                 detail={
                   activeLoop
                     ? activeLoop.taskTitle
-                    : "Completed loops saved today"
+                    : "Saved today"
                 }
               />
               <MetricCard
@@ -357,7 +357,7 @@ export function TodayCommandCenter() {
                   activeLoop && activeLoop.phase === "focus"
                     ? activeLoop.focusMode === "timed"
                       ? `${formatMinutes(activeLoop.plannedMinutes)} target`
-                      : "Open-ended focus loop"
+                      : "Open-ended block"
                     : "High-focus minutes logged today"
                 }
               />
@@ -379,14 +379,12 @@ export function TodayCommandCenter() {
               <div className="mt-6 rounded-[1.5rem] border border-amber-300/15 bg-amber-300/8 px-4 py-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-stone-100">
-                      A focus loop is live right now.
-                    </p>
+                    <p className="text-sm font-medium text-stone-100">A focus window is active.</p>
                     <p className="mt-2 text-sm leading-6 text-stone-300">
                       {activeLoop.phase === "focus"
                         ? "Protect the block until it is cleanly closed."
                         : activeLoop.phase === "recovery"
-                          ? "Finish the exit protocol and save the loop."
+                          ? "Finish the break and either save or go again."
                           : "Finish the setup so the block starts under pressure instead of drift."}
                     </p>
                   </div>
@@ -404,11 +402,10 @@ export function TodayCommandCenter() {
             ) : sessions.length === 0 ? (
               <div className="mt-6 rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-4 py-5">
                 <p className="text-sm font-medium text-stone-100">
-                  No completed loops yet.
+                  No saved blocks yet.
                 </p>
                 <p className="mt-2 text-sm leading-6 text-stone-400">
-                  Start the focus loop when you are ready to preload, lock in, and
-                  capture one real block instead of just planning one.
+                  Open the window when you are ready to preload once and then build real blocks.
                 </p>
               </div>
             ) : (

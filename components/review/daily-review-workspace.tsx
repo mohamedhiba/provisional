@@ -188,11 +188,11 @@ export function DailyReviewWorkspace() {
               detail: dailyPlan.oneThing.trim() || "No top priority chosen yet.",
             },
             {
-              label: "Focus loops",
+              label: "Focus blocks",
               value: `${sessions.length}`,
               detail:
                 sessions.length > 0
-                  ? `${sessions.length} completed loop${sessions.length === 1 ? "" : "s"} saved today`
+                  ? `${sessions.length} saved block${sessions.length === 1 ? "" : "s"} today`
                   : "No work evidence logged yet.",
             },
             {

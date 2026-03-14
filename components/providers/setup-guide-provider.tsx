@@ -65,12 +65,12 @@ const baseSteps = [
   },
   {
     id: "sessions",
-    label: "Run one focus loop",
-    shortLabel: "Loop",
+    label: "Run one focus window",
+    shortLabel: "Window",
     description:
-      "Complete one preload-to-recovery loop so the app has real evidence of how you work when it counts.",
+      "Open one focus window, complete a real block, and save the proof so the app learns from actual work.",
     href: "/sessions",
-    actionLabel: "Open Focus Loop",
+    actionLabel: "Open Focus Window",
   },
   {
     id: "review",

@@ -1,11 +1,9 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 import { AccountPanel } from "@/components/auth/account-panel";
-import { SetupGuideBanner } from "@/components/guide/setup-guide-banner";
 import { Logo } from "@/components/logo";
 import { useAnalytics } from "@/components/providers/analytics-provider";
 import { useDailyReview } from "@/components/providers/daily-review-provider";
@@ -14,42 +12,60 @@ import { useTodayPlan } from "@/components/providers/today-plan-provider";
 import { useWeeklyReview } from "@/components/providers/weekly-review-provider";
 import { formatPlanDate } from "@/lib/daily-plan";
 import { computeDailyScore } from "@/lib/daily-score";
+import { computeFocusSessionMetrics, formatMinutes } from "@/lib/focus-session";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const isTodayPage = pathname === "/today" || pathname.startsWith("/today/");
+  const isSessionsPage = pathname === "/sessions" || pathname.startsWith("/sessions/");
   const { dailyPlan, hasLoaded: todayLoaded } = useTodayPlan();
-  const { sessions, hasLoaded: sessionsLoaded } = useFocusSessions();
+  const { sessions, activeLoop, hasLoaded: sessionsLoaded } = useFocusSessions();
   const { review, hasLoaded: reviewLoaded } = useDailyReview();
   const { summary, hasLoaded: weeklyLoaded } = useWeeklyReview();
   const { snapshot, hasLoaded: analyticsLoaded } = useAnalytics();
+  const focusMetrics = computeFocusSessionMetrics(sessions);
   const score = computeDailyScore({
     dailyPlan,
     sessions,
     reviewCompleted: Boolean(review),
   });
-  const headerMetrics = [
-    [
-      "Streak",
-      analyticsLoaded
-        ? `${snapshot.currentStreak} day${snapshot.currentStreak === 1 ? "" : "s"}`
-        : weeklyLoaded
-          ? `${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"}`
-          : "--",
-    ],
-    [
-      "This week",
-      weeklyLoaded
-        ? `${summary.winningDays} win${summary.winningDays === 1 ? "" : "s"}`
-        : "--",
-    ],
-    [
-      "Score",
-      todayLoaded && sessionsLoaded && reviewLoaded ? `${score}` : "--",
-    ],
-  ] as const;
+  const headerMetrics = isSessionsPage
+    ? ([
+        [
+          "Window",
+          activeLoop
+            ? activeLoop.phase === "focus"
+              ? "Live"
+              : activeLoop.phase === "recovery"
+                ? "Break"
+                : "Warm"
+            : "Idle",
+        ],
+        ["Blocks", sessionsLoaded ? `${focusMetrics.totalSessions}` : "--"],
+        ["Deep", sessionsLoaded ? formatMinutes(focusMetrics.deepMinutes) : "--"],
+      ] as const)
+    : ([
+        [
+          "Streak",
+          analyticsLoaded
+            ? `${snapshot.currentStreak} day${snapshot.currentStreak === 1 ? "" : "s"}`
+            : weeklyLoaded
+              ? `${summary.currentStreak} day${summary.currentStreak === 1 ? "" : "s"}`
+              : "--",
+        ],
+        [
+          "This week",
+          weeklyLoaded
+            ? `${summary.winningDays} win${summary.winningDays === 1 ? "" : "s"}`
+            : "--",
+        ],
+        [
+          "Score",
+          todayLoaded && sessionsLoaded && reviewLoaded ? `${score}` : "--",
+        ],
+      ] as const);
 
   return (
     <div className="relative min-h-screen text-stone-100">
@@ -134,13 +150,15 @@ export function AppShell({ children }: PropsWithChildren) {
                 <h1
                   className={cn(
                     "mt-3 max-w-2xl tracking-tight text-stone-50",
-                    isTodayPage
+                    isTodayPage || isSessionsPage
                       ? "text-[clamp(1.9rem,2.5vw,2.6rem)]"
                       : "text-[clamp(2rem,3vw,3rem)]",
                   )}
                 >
                   {isTodayPage
                     ? "Know what matters today. Then make the day prove it."
+                    : isSessionsPage
+                      ? "Open one clean window and protect it."
                     : "Know what matters. Do the work. Face the truth."}
                 </h1>
               </div>
@@ -160,7 +178,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 ))}
               </div>
             </div>
-            {!isTodayPage ? (
+            {!isTodayPage && !isSessionsPage ? (
               <div>
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-stone-400">
                   Treat the interface like a command room: fewer decorations, sharper
@@ -169,11 +187,6 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
             ) : null}
           </header>
-          {!isTodayPage ? (
-            <div className="px-5 pt-6 sm:px-8">
-              <SetupGuideBanner />
-            </div>
-          ) : null}
           <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8">{children}</main>
         </div>
       </div>

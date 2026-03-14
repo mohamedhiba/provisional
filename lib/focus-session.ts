@@ -83,6 +83,8 @@ export type ActiveFocusLoop = {
   closureNotes: string;
   sessionStatus: FocusSessionStatus | null;
   activationChecklist: ActivationChecklist;
+  hasCompletedPreload: boolean;
+  blocksCompleted: number;
 };
 
 export const focusSessionsStorageKeyPrefix = "proof-focus-sessions";
@@ -366,7 +368,7 @@ export function validateFocusLoopPlanDraft(draft: FocusLoopPlanDraft) {
   }
 
   if (!draft.pillar.trim()) {
-    return "Choose the pillar this focus loop belongs to.";
+    return "Choose the pillar this focus window belongs to.";
   }
 
   const plannedMinutes = Number(draft.plannedMinutes);
@@ -442,6 +444,8 @@ export function createActiveFocusLoop(
     closureNotes: "",
     sessionStatus: null,
     activationChecklist: { ...defaultActivationChecklist },
+    hasCompletedPreload: false,
+    blocksCompleted: 0,
   };
 }
 
@@ -510,6 +514,8 @@ export function normalizeActiveFocusLoop(
       environmentReady: Boolean(value.activationChecklist?.environmentReady),
       triggerArmed: Boolean(value.activationChecklist?.triggerArmed),
     },
+    hasCompletedPreload: Boolean(value.hasCompletedPreload),
+    blocksCompleted: Math.max(0, Number(value.blocksCompleted ?? 0)),
   } satisfies ActiveFocusLoop;
 }
 

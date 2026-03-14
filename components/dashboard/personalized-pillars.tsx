@@ -64,7 +64,7 @@ export function PersonalizedPillars() {
         const detail =
           pillar.sessions === 0
             ? "No focus proof logged for this pillar today."
-            : `${pillar.sessions} loop${pillar.sessions === 1 ? "" : "s"} completed${pillar.deepMinutes > 0 ? ` • ${pillar.deepMinutes} deep min` : ""}`;
+            : `${pillar.sessions} block${pillar.sessions === 1 ? "" : "s"} saved${pillar.deepMinutes > 0 ? ` • ${pillar.deepMinutes} deep min` : ""}`;
 
         return {
           ...pillar,
@@ -81,7 +81,7 @@ export function PersonalizedPillars() {
       <div className="mt-6 rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-5 py-5">
         <p className="text-sm font-medium text-stone-100">No pillars are active yet.</p>
         <p className="mt-2 text-sm leading-6 text-stone-400">
-          Add your real life areas in onboarding, then use focus loops to show
+          Add your real life areas in onboarding, then use saved focus blocks to show
           which pillar today is actually serving.
         </p>
       </div>
