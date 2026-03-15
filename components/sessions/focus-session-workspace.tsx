@@ -923,292 +923,164 @@ export function FocusSessionWorkspace() {
               ))}
             </div>
 
-            <div className="mt-6 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.86fr)]">
-              <div className="space-y-5">
-                <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px]">
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                        Active window
-                      </p>
-                      <h2 className="mt-3 text-3xl text-stone-50">
-                        {activeLoop.taskTitle}
-                      </h2>
-                      <p className="mt-3 max-w-xl text-sm leading-7 text-stone-400">
-                        {getPhaseLine(activeLoop)}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {[
-                          activeLoop.pillar,
-                          activeLoop.workDepth === "deep" ? "Deep work" : "Shallow work",
-                          activeLoop.focusMode === "timed"
-                            ? `${activeLoop.plannedMinutes}m target`
-                            : "Open-ended",
-                          activeLoop.blocksCompleted > 0
-                            ? `${activeLoop.blocksCompleted} block${activeLoop.blocksCompleted === 1 ? "" : "s"} done`
-                            : "First block",
-                        ].map((item) => (
-                          <span
-                            key={item}
-                            className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-stone-300"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+            <div className="mt-6 space-y-5">
+              <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                  Active window
+                </p>
+                <h2 className="mt-3 max-w-3xl break-words text-3xl text-stone-50 sm:text-[2.65rem]">
+                  {activeLoop.taskTitle}
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-400">
+                  {getPhaseLine(activeLoop)}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    activeLoop.pillar,
+                    activeLoop.workDepth === "deep" ? "Deep work" : "Shallow work",
+                    activeLoop.focusMode === "timed"
+                      ? `${activeLoop.plannedMinutes}m target`
+                      : "Open-ended",
+                    activeLoop.blocksCompleted > 0
+                      ? `${activeLoop.blocksCompleted} block${activeLoop.blocksCompleted === 1 ? "" : "s"} done`
+                      : "First block",
+                  ].map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-stone-300"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <CompactMetric
+                    label={countdown?.label ?? "Timer"}
+                    value={countdown?.value ?? "--:--"}
+                    detail={
+                      activeLoop.phase === "focus" ? "Current block" : getPhaseTitle(activeLoop)
+                    }
+                  />
+                  <CompactMetric
+                    label="Drift"
+                    value={`${activeLoop.distractionCount}`}
+                    detail="Interruptions"
+                  />
+                  <CompactMetric
+                    label="Break"
+                    value={formatMinutes(activeLoop.recoveryMinutes)}
+                    detail="Phone-free reset"
+                  />
+                </div>
+              </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                      <CompactMetric
-                        label={countdown?.label ?? "Timer"}
-                        value={countdown?.value ?? "--:--"}
-                        detail={activeLoop.phase === "focus" ? "Current block" : getPhaseTitle(activeLoop)}
-                      />
-                      <CompactMetric
-                        label="Drift"
-                        value={`${activeLoop.distractionCount}`}
-                        detail="Interruptions"
-                      />
-                      <CompactMetric
-                        label="Break"
-                        value={formatMinutes(activeLoop.recoveryMinutes)}
-                        detail="Phone-free reset"
-                      />
-                    </div>
+              <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                  Window state
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
+                      <MoonStar className="h-4 w-4 text-amber-200" />
+                      Preload
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-stone-400">
+                      {activeLoop.hasCompletedPreload
+                        ? "Done for this window"
+                        : `${activeLoop.preloadMinutes}m before the first block`}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
+                      <Headphones className="h-4 w-4 text-amber-200" />
+                      Cue + environment
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-stone-400">
+                      {activeLoop.activationLabel}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-stone-500">
+                      {activeLoop.environmentLabel}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                    <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
+                      <Footprints className="h-4 w-4 text-amber-200" />
+                      Break rule
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-stone-400">
+                      {activeLoop.recoveryLabel}
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {activeLoop.phase === "preload" ? (
-                  <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                    <p className="text-sm leading-7 text-stone-300">
-                      Sit in silence. No phone, no browsing, no reward spike.
-                    </p>
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <Button size="lg" onClick={() => moveToActivation(false)}>
-                        Begin lock-in
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="lg"
-                        onClick={() => moveToActivation(true)}
-                      >
-                        Skip preload
-                      </Button>
-                      <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
-                        End window
-                      </Button>
-                    </div>
+              {activeLoop.phase === "preload" ? (
+                <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
+                  <p className="text-sm leading-7 text-stone-300">
+                    Sit in silence. No phone, no browsing, no reward spike.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <Button size="lg" onClick={() => moveToActivation(false)}>
+                      Begin lock-in
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => moveToActivation(true)}
+                    >
+                      Skip preload
+                    </Button>
+                    <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
+                      End window
+                    </Button>
                   </div>
-                ) : null}
+                </div>
+              ) : null}
 
-                {activeLoop.phase === "activation" ? (
-                  <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                    {activeLoop.blocksCompleted === 0 ? (
-                      <>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {checklistItems.map((item) => {
-                            const checked = activeLoop.activationChecklist[item.key];
+              {activeLoop.phase === "activation" ? (
+                <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
+                  {activeLoop.blocksCompleted === 0 ? (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {checklistItems.map((item) => {
+                          const checked = activeLoop.activationChecklist[item.key];
 
-                            return (
-                              <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => updateChecklist(item.key)}
-                                className={cn(
-                                  "flex items-center justify-between rounded-[1.35rem] border px-4 py-4 text-left transition",
-                                  checked
-                                    ? "border-emerald-300/20 bg-emerald-300/10 text-stone-50"
-                                    : "border-white/8 bg-white/[0.03] text-stone-300",
-                                )}
-                              >
-                                <span className="text-sm font-medium">{item.label}</span>
-                                {checked ? (
-                                  <CircleCheckBig className="h-4 w-4 text-emerald-200" />
-                                ) : (
-                                  <CircleOff className="h-4 w-4 text-stone-500" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-5 flex flex-wrap gap-3">
-                          <Button size="lg" onClick={startFocusFromActivation}>
-                            Start first block
-                          </Button>
-                          <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
-                            End window
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_120px_140px]">
-                          <input
-                            className={cn(inputClassName, "md:col-span-2 xl:col-span-1")}
-                            value={nextBlockDraft.taskTitle}
-                            onChange={(event) =>
-                              setNextBlockDraft((current) => ({
-                                ...current,
-                                taskTitle: event.target.value,
-                              }))
-                            }
-                            placeholder="Next block target"
-                          />
-                          <input
-                            className={inputClassName}
-                            value={nextBlockDraft.plannedMinutes}
-                            onChange={(event) =>
-                              setNextBlockDraft((current) => ({
-                                ...current,
-                                plannedMinutes: event.target.value,
-                              }))
-                            }
-                            inputMode="numeric"
-                            placeholder="Minutes"
-                          />
-                          <select
-                            className={inputClassName}
-                            value={nextBlockDraft.pillar}
-                            onChange={(event) =>
-                              setNextBlockDraft((current) => ({
-                                ...current,
-                                pillar: event.target.value,
-                              }))
-                            }
-                          >
-                            {pillars.map((pillar) => (
-                              <option key={pillar} value={pillar}>
-                                {pillar}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-3">
-                          {(["deep", "shallow"] as const).map((depth) => (
+                          return (
                             <button
-                              key={depth}
+                              key={item.key}
                               type="button"
-                              onClick={() =>
-                                setNextBlockDraft((current) => ({
-                                  ...current,
-                                  workDepth: depth,
-                                }))
-                              }
+                              onClick={() => updateChecklist(item.key)}
                               className={cn(
-                                "rounded-full border px-4 py-2 text-sm transition",
-                                nextBlockDraft.workDepth === depth
-                                  ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
-                                  : "border-white/10 bg-white/[0.03] text-stone-300",
+                                "flex items-center justify-between rounded-[1.35rem] border px-4 py-4 text-left transition",
+                                checked
+                                  ? "border-emerald-300/20 bg-emerald-300/10 text-stone-50"
+                                  : "border-white/8 bg-white/[0.03] text-stone-300",
                               )}
                             >
-                              {depth === "deep" ? "Deep" : "Shallow"}
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setNextBlockDraft((current) => ({
-                                ...current,
-                                taskTitle: activeLoop.taskTitle,
-                              }))
-                            }
-                            className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-stone-300 transition hover:bg-white/[0.05]"
-                          >
-                            Reuse target
-                          </button>
-                        </div>
-                        <div className="mt-5 flex flex-wrap gap-3">
-                          <Button size="lg" onClick={startFocusFromActivation}>
-                            Start next block
-                          </Button>
-                          <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
-                            End window
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : null}
-
-                {activeLoop.phase === "focus" ? (
-                  <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => adjustDistractions(1)}
-                        className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] p-4 text-left transition hover:bg-white/[0.05]"
-                      >
-                        <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
-                          <Zap className="h-4 w-4 text-amber-200" />
-                          Log distraction
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-stone-400">
-                          Count the interruption instead of hiding it.
-                        </p>
-                      </button>
-                      <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] p-4">
-                        <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
-                          <Shield className="h-4 w-4 text-amber-200" />
-                          Protocol
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-stone-400">
-                          {activeLoop.environmentLabel}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <Button size="lg" onClick={() => endCurrentBlock("completed")}>
-                        End block
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="lg"
-                        onClick={() => endCurrentBlock("ended-early")}
-                      >
-                        End early
-                      </Button>
-                      <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
-                        End window
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-
-                {activeLoop.phase === "recovery" ? (
-                  <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-3">
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                          Quality
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <button
-                              key={rating}
-                              type="button"
-                              onClick={() =>
-                                setActiveLoop((current) =>
-                                  current ? { ...current, qualityRating: rating } : null,
-                                )
-                              }
-                              className={cn(
-                                "rounded-full border px-3 py-2 text-sm transition",
-                                (activeLoop.qualityRating ?? 4) === rating
-                                  ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
-                                  : "border-white/10 bg-white/[0.03] text-stone-300",
+                              <span className="text-sm font-medium">{item.label}</span>
+                              {checked ? (
+                                <CircleCheckBig className="h-4 w-4 text-emerald-200" />
+                              ) : (
+                                <CircleOff className="h-4 w-4 text-stone-500" />
                               )}
-                            >
-                              {rating}/5
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
-                      <div className="space-y-3">
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                          Next block
-                        </p>
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <Button size="lg" onClick={startFocusFromActivation}>
+                          Start first block
+                        </Button>
+                        <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
+                          End window
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 lg:grid-cols-2">
                         <input
-                          className={inputClassName}
+                          className={cn(inputClassName, "lg:col-span-2")}
                           value={nextBlockDraft.taskTitle}
                           onChange={(event) =>
                             setNextBlockDraft((current) => ({
@@ -1216,25 +1088,8 @@ export function FocusSessionWorkspace() {
                               taskTitle: event.target.value,
                             }))
                           }
-                          placeholder="Optional next block target"
+                          placeholder="Next block target"
                         />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_120px_140px]">
-                      <textarea
-                        className={cn(textAreaClassName, "xl:min-h-24")}
-                        value={activeLoop.closureNotes}
-                        onChange={(event) =>
-                          setActiveLoop((current) =>
-                            current
-                              ? { ...current, closureNotes: event.target.value }
-                              : null,
-                          )
-                        }
-                        placeholder="One honest line."
-                      />
-                      <div className="grid gap-4 md:grid-cols-2 xl:col-span-2 xl:grid-cols-[120px_140px]">
                         <input
                           className={inputClassName}
                           value={nextBlockDraft.plannedMinutes}
@@ -1245,7 +1100,7 @@ export function FocusSessionWorkspace() {
                             }))
                           }
                           inputMode="numeric"
-                          placeholder="Min"
+                          placeholder="Minutes"
                         />
                         <select
                           className={inputClassName}
@@ -1264,68 +1119,206 @@ export function FocusSessionWorkspace() {
                           ))}
                         </select>
                       </div>
-                    </div>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {(["deep", "shallow"] as const).map((depth) => (
+                          <button
+                            key={depth}
+                            type="button"
+                            onClick={() =>
+                              setNextBlockDraft((current) => ({
+                                ...current,
+                                workDepth: depth,
+                              }))
+                            }
+                            className={cn(
+                              "rounded-full border px-4 py-2 text-sm transition",
+                              nextBlockDraft.workDepth === depth
+                                ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
+                                : "border-white/10 bg-white/[0.03] text-stone-300",
+                            )}
+                          >
+                            {depth === "deep" ? "Deep" : "Shallow"}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNextBlockDraft((current) => ({
+                              ...current,
+                              taskTitle: activeLoop.taskTitle,
+                            }))
+                          }
+                          className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-stone-300 transition hover:bg-white/[0.05]"
+                        >
+                          Reuse target
+                        </button>
+                      </div>
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <Button size="lg" onClick={startFocusFromActivation}>
+                          Start next block
+                        </Button>
+                        <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
+                          End window
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
 
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <Button size="lg" onClick={() => void saveBlock(false)}>
-                        Save + next block
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="lg"
-                        onClick={() => void saveBlock(true)}
-                      >
-                        Save + end window
-                      </Button>
-                      <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
-                        Discard
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-5">
+              {activeLoop.phase === "focus" ? (
                 <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
-                    Window state
-                  </p>
-                  <div className="mt-4 grid gap-3">
-                    <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => adjustDistractions(1)}
+                      className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] p-4 text-left transition hover:bg-white/[0.05]"
+                    >
                       <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
-                        <MoonStar className="h-4 w-4 text-amber-200" />
-                        Preload
+                        <Zap className="h-4 w-4 text-amber-200" />
+                        Log distraction
                       </p>
                       <p className="mt-2 text-sm leading-6 text-stone-400">
-                        {activeLoop.hasCompletedPreload
-                          ? "Done for this window"
-                          : `${activeLoop.preloadMinutes}m before the first block`}
+                        Count the interruption instead of hiding it.
                       </p>
-                    </div>
-                    <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+                    </button>
+                    <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] p-4">
                       <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
-                        <Headphones className="h-4 w-4 text-amber-200" />
-                        Cue + environment
+                        <Shield className="h-4 w-4 text-amber-200" />
+                        Protocol
                       </p>
                       <p className="mt-2 text-sm leading-6 text-stone-400">
-                        {activeLoop.activationLabel}
-                      </p>
-                      <p className="mt-1 text-sm leading-6 text-stone-500">
                         {activeLoop.environmentLabel}
                       </p>
                     </div>
-                    <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
-                      <p className="flex items-center gap-2 text-sm font-medium text-stone-100">
-                        <Footprints className="h-4 w-4 text-amber-200" />
-                        Break rule
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-stone-400">
-                        {activeLoop.recoveryLabel}
-                      </p>
-                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <Button size="lg" onClick={() => endCurrentBlock("completed")}>
+                      End block
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => endCurrentBlock("ended-early")}
+                    >
+                      End early
+                    </Button>
+                    <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
+                      End window
+                    </Button>
                   </div>
                 </div>
-              </div>
+              ) : null}
+
+              {activeLoop.phase === "recovery" ? (
+                <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="space-y-3">
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                        Quality
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            key={rating}
+                            type="button"
+                            onClick={() =>
+                              setActiveLoop((current) =>
+                                current ? { ...current, qualityRating: rating } : null,
+                              )
+                            }
+                            className={cn(
+                              "rounded-full border px-3 py-2 text-sm transition",
+                              (activeLoop.qualityRating ?? 4) === rating
+                                ? "border-amber-300/25 bg-amber-300/10 text-stone-50"
+                                : "border-white/10 bg-white/[0.03] text-stone-300",
+                            )}
+                          >
+                            {rating}/5
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
+                        Next block
+                      </p>
+                      <input
+                        className={inputClassName}
+                        value={nextBlockDraft.taskTitle}
+                        onChange={(event) =>
+                          setNextBlockDraft((current) => ({
+                            ...current,
+                            taskTitle: event.target.value,
+                          }))
+                        }
+                        placeholder="Optional next block target"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <textarea
+                      className={textAreaClassName}
+                      value={activeLoop.closureNotes}
+                      onChange={(event) =>
+                        setActiveLoop((current) =>
+                          current
+                            ? { ...current, closureNotes: event.target.value }
+                            : null,
+                        )
+                      }
+                      placeholder="One honest line."
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <input
+                        className={inputClassName}
+                        value={nextBlockDraft.plannedMinutes}
+                        onChange={(event) =>
+                          setNextBlockDraft((current) => ({
+                            ...current,
+                            plannedMinutes: event.target.value,
+                          }))
+                        }
+                        inputMode="numeric"
+                        placeholder="Min"
+                      />
+                      <select
+                        className={inputClassName}
+                        value={nextBlockDraft.pillar}
+                        onChange={(event) =>
+                          setNextBlockDraft((current) => ({
+                            ...current,
+                            pillar: event.target.value,
+                          }))
+                        }
+                      >
+                        {pillars.map((pillar) => (
+                          <option key={pillar} value={pillar}>
+                            {pillar}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button size="lg" onClick={() => void saveBlock(false)}>
+                      Save + next block
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => void saveBlock(true)}
+                    >
+                      Save + end window
+                    </Button>
+                    <Button variant="ghost" size="lg" onClick={clearActiveLoop}>
+                      Discard
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
