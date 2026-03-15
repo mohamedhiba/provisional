@@ -217,7 +217,7 @@ function CompactMetric({
   detail?: string;
 }) {
   return (
-    <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+    <div className="min-w-0 rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
       <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">{label}</p>
       <p className="mt-3 text-2xl font-semibold tracking-tight text-stone-50">{value}</p>
       {detail ? <p className="mt-2 text-sm leading-6 text-stone-400">{detail}</p> : null}
@@ -923,11 +923,11 @@ export function FocusSessionWorkspace() {
               ))}
             </div>
 
-            <div className="mt-6 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="mt-6 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.86fr)]">
               <div className="space-y-5">
                 <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
+                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
                         Active window
                       </p>
@@ -1042,9 +1042,9 @@ export function FocusSessionWorkspace() {
                       </>
                     ) : (
                       <>
-                        <div className="grid gap-4 sm:grid-cols-[1fr_140px_140px]">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_120px_140px]">
                           <input
-                            className={inputClassName}
+                            className={cn(inputClassName, "md:col-span-2 xl:col-span-1")}
                             value={nextBlockDraft.taskTitle}
                             onChange={(event) =>
                               setNextBlockDraft((current) => ({
@@ -1176,7 +1176,7 @@ export function FocusSessionWorkspace() {
 
                 {activeLoop.phase === "recovery" ? (
                   <div className="rounded-[1.75rem] border border-white/8 bg-black/20 p-5">
-                    <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-3">
                         <p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">
                           Quality
@@ -1221,9 +1221,9 @@ export function FocusSessionWorkspace() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_120px_120px]">
+                    <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_120px_140px]">
                       <textarea
-                        className={textAreaClassName}
+                        className={cn(textAreaClassName, "xl:min-h-24")}
                         value={activeLoop.closureNotes}
                         onChange={(event) =>
                           setActiveLoop((current) =>
@@ -1234,34 +1234,36 @@ export function FocusSessionWorkspace() {
                         }
                         placeholder="One honest line."
                       />
-                      <input
-                        className={inputClassName}
-                        value={nextBlockDraft.plannedMinutes}
-                        onChange={(event) =>
-                          setNextBlockDraft((current) => ({
-                            ...current,
-                            plannedMinutes: event.target.value,
-                          }))
-                        }
-                        inputMode="numeric"
-                        placeholder="Min"
-                      />
-                      <select
-                        className={inputClassName}
-                        value={nextBlockDraft.pillar}
-                        onChange={(event) =>
-                          setNextBlockDraft((current) => ({
-                            ...current,
-                            pillar: event.target.value,
-                          }))
-                        }
-                      >
-                        {pillars.map((pillar) => (
-                          <option key={pillar} value={pillar}>
-                            {pillar}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid gap-4 md:grid-cols-2 xl:col-span-2 xl:grid-cols-[120px_140px]">
+                        <input
+                          className={inputClassName}
+                          value={nextBlockDraft.plannedMinutes}
+                          onChange={(event) =>
+                            setNextBlockDraft((current) => ({
+                              ...current,
+                              plannedMinutes: event.target.value,
+                            }))
+                          }
+                          inputMode="numeric"
+                          placeholder="Min"
+                        />
+                        <select
+                          className={inputClassName}
+                          value={nextBlockDraft.pillar}
+                          onChange={(event) =>
+                            setNextBlockDraft((current) => ({
+                              ...current,
+                              pillar: event.target.value,
+                            }))
+                          }
+                        >
+                          {pillars.map((pillar) => (
+                            <option key={pillar} value={pillar}>
+                              {pillar}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-3">
